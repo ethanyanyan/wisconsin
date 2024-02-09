@@ -1,0 +1,235 @@
+---
+author: "YOUR NAME HERE"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE, fig.height = 3)
+library(tidyverse)
+library(kableExtra)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+\newcommand{\E}{\mathsf{E}}
+\newcommand{\Var}{\mathsf{Var}}
+\renewcommand{\prob}{\mathsf{P}}
+
+
+## Assignment 8
+
+#### Due Friday, November 3, 11:59 PM CT
+
+### Preliminaries
+
+- Directories
+    - COURSE/homework/
+    - COURSE/homework/hw08/
+    - COURSE/data/
+    - COURSE/scripts/
+- Files
+  - COURSE/homework/hw08/hw08.Rmd
+  - COURSE/scripts/viridis.R
+  - COURSE/scripts/ggprob.R
+
+### Aims
+
+- Practice the binomial distribution
+
+### Problems
+
+  1. What is the probability that a sequence of fair, independent coin tosses results in exactly $m$ heads in $n = 2m$ independent coin tosses, when $m$ varies from 1 to 50? Calculate these values using `dbinom()` and plot them versus $n$.
+  
+```{r}
+
+df = tibble(m=seq(1, 50, by=1), n = 2 * m, probability = dbinom(m, n, 0.5))
+df
+
+ggplot(df, aes(x = n, y = probability)) +
+  geom_line() +
+  labs(x = "n (Number of Tosses)", y = "Probability", title = "Binomial Probability of Getting m Heads in n Tosses", subtitle="Where n = 2 * m")
+
+```
+  
+
+
+  2. Suppose you have a random variable $X \sim \text{Binomial}(120, 0.2)$.
+
+- 2a. Calculate and report the mean and standard deviation of the distribution.
+
+```{r}
+
+n1= 120
+p1 = 0.2
+
+mean = n1 * p1
+var = n1*p1*(1-p1)
+sd = sqrt(var)
+
+mean
+sd
+
+```
+
+- 2b. Calculate and report the probability that the random variable is exactly equal to 20, $\prob(X = 20)$.
+
+```{r}
+
+dbinom(20, n1, p1)
+
+```
+
+- 2c. Calculate and report the probability that $X$ equals 20 or more, $\prob(X \ge 20)$.
+
+```{r}
+
+1 - pbinom(19, n1, p1)
+
+```
+
+- 2d. Draw a graph of the binomial distribution with vertical lines at the mean (red and dashed), and 1, 2, and 3 standard deviations above and below the mean (red and dotted).
+
+
+```{r}
+
+gbinom(n1, p1, scale = TRUE) +
+  geom_vline(xintercept = mean, color = "red", linetype = "dashed") +
+  geom_vline(xintercept = mean + c(-1,1)*sd,
+             color = "red", linetype = "dotted") +
+  geom_vline(xintercept = mean + c(-2,2)*sd,
+             color = "red", linetype = "dotted") +
+  geom_vline(xintercept = mean + c(-3,3)*sd,
+             color = "red", linetype = "dotted") +
+  theme_minimal()
+
+```
+
+
+
+
+
+  3. What is the probability that $X$ from Problem 2 is within one, two, and three standard deviations of the mean? Round each probability to four decimal places.
+
+```{r}
+
+# One SD
+round(pbinom(mean+sd, n1, p1) - pbinom(mean-sd, n1, p1), 4)
+
+# Two SD
+round(pbinom(mean+ 2 * sd, n1, p1) - pbinom(mean- 2 * sd, n1, p1), 4)
+
+# Three SD
+round(pbinom(mean+ 3 * sd, n1, p1) - pbinom(mean- 3 * sd, n1, p1), 4)
+
+```
+
+
+
+
+
+
+  4. The following code makes a graph of the cumulative distribution function for the $\text{Binomial}(7, 0.3)$ distribution, that is $F(x) = \prob(X \le x)$. This is the function which is calculated by the base R function `pbinom()`.
+
+- Modify the code to add a horizontal red dotted line at 0.4.
+
+
+```{r}
+prob4 = tibble(
+  x = seq(-1,8,1),
+  p = dbinom(x, 7, 0.3),
+  cdf = pbinom(x, 7, 0.3))
+
+ggplot(prob4, aes(x = x, y = cdf )) +
+  geom_step(color = "blue") +
+  geom_hline(yintercept = 0) +
+  scale_x_continuous(breaks = 0:7) +
+  geom_hline(yintercept = 0.4,
+             color = "red", linetype = "dotted") +
+  xlab("x") +
+  ylab("Probability") +
+  ggtitle("Binomial(7, 0.3) distribution CDF") +
+  theme_minimal()
+```
+
+- Calculate the 0.4 quantile of the $\text{Binomial}(7, 0.3)$
+
+```{r}
+
+qbinom(0.4, 7, 0.3)
+
+```
+
+- Explain how the value of the quantile is related to the red dotted line which you added to the plot.
+
+> The red dotted line at 0.4 on the plot represents the cumulative probability of 0.4. It shows where the cumulative distribution function (CDF) crosses the probability of 0.4 on the y-axis. In this case, it corresponds to x = 2.
+
+- Use the graph to determine the 0.75 quantile of this distribution.
+
+> Using the graph, the 0.75 quantile is x = 3
+
+Then verify your observation with a calculation.
+
+```{r}
+
+qbinom(0.75, 7, 0.3)
+
+```
+
+
+
+
+
+  5. In a large population of likely voters, the proportion of voters who plan to vote for candidate A is $p = 0.52$. In a random sample of 600 likely voters, what is the probability that the proportion of voters who plan to vote for candidate A is less than 50% (the number of such voters is less than 300)?
+  
+```{r}
+
+pbinom(299, 600, 0.52)
+
+```
+
+
+
+
+  6. Basketball player 1 makes 80% of their free throws and basketball players 2 makes 70% of their free throws. Assume all of their free throws attempts are independent. If each player takes ten free throws and $X$ is the total number of free throws they make, does $X$ have a binomial distribution? If yes, specify the parameters $n$ and $p$. If not, explain why not.
+  
+> $X$ does not have a binomial distribution. The total number of successful free throws $X$ is the sum of the successful free throws from player 1 and player 2. While the number of successful free throws for each player separately does follow a binomial distribution, the distribution of $X$ will be the convolution of two binomial distributions, not a single binomial distribution.
+
+- The two players have different probabilities of success, so we cannot use a single probability $p$ for both.
+- Even though the trials are independent within each player’s attempts, the total number of successes $X$ is the sum of two different binomial distributions, one for each player.
+
+> Thus, to find the distribution of $X$, one would need to compute the sum of these two distributions. This sum does not simplify to a single binomial distribution because the probability of success differs between the two players.
+
+
+
+  7. What is the smallest number of coin tosses $n$ of a fair coin so that the chance of getting 50 or more heads exceeds 90%?  (You may need to do some trial and error. Alternatively, think of creating a data frame with a column `n` and a column for the probability and using this to find the answer.)
+
+```{r}
+
+df2 = tibble(n=seq(100, 150, by=1), p = 0.5, probability = 1 - pbinom(49, n, p))
+head(df2 %>% filter(probability > 0.9), 1)
+
+```
+
+> Smallest n is 113
+
+
+  8. The random variable $X$ has the $\text{Binomial}(100, 0.2)$ distribution.
+  
+- Find an integer $a$ so that $P(X \le a) \ge 0.5$ and $P(X \ge a) \ge 0.5$.
+- Show the values of $a$, $P(X \le a)$, and $P(X \ge a)$.
+
+```{r}
+
+n2 = 100
+p2 = 0.2
+
+df3 = tibble(n=100, p = 0.2, a=seq(0,200, by=1), lt = pbinom(a,n,p), mt = 1 - pbinom(a-1,n,p))
+df3 %>% filter(lt >= 0.5 & mt >= 0.5)
+
+```
+
+- From the dataframe, a = 20, $P(X \le a)$ is 0.559 and $P(X \ge a)$ is 0.540
+  
+
+

@@ -1,0 +1,327 @@
+---
+title: "Project Final Draft"
+output: html_document
+---
+
+
+### Introduction
+
+In the current landscape where environmental sustainability is a priority, the transition towards electric vehicles (EVs) marks a significant shift in the transportation sector. This report aims to dissect a crucial facet of this evolution by examining electric vehicle registrations in Washington State, a region at the forefront of embracing sustainable mobility solutions.
+
+> Question and Motivation
+
+The crux of our analysis is to pinpoint specific counties within Washington State that have seen a remarkable year-on-year increase in electric vehicle registrations—specifically, those exceeding a 20% surge. This investigation is fueled by the objective to unravel the varied patterns of EV adoption across different regions. Understanding these dynamics is imperative for shaping informed policy decisions, guiding infrastructure development, and gaining insights into consumer behavior in an era increasingly leaning towards eco-friendly transport solutions.
+
+> Thesis Statement
+
+This report examines the dynamics of electric vehicle (EV) registrations in Washington State, with a specific focus on the relationship between county size and EV adoption rates. We propose a hypothesis test that divides the counties into two groups based on population size, using the median population as the dividing criterion. The smaller counties are those falling below the median, while the larger ones are above this threshold. Our hypothesis posits that smaller counties, as classified by this method, exhibit a significantly different percentage increase in EV registrations compared to their larger counterparts. This study aims to provide a nuanced understanding of how population density influences the adoption of electric vehicles, contributing to a more targeted approach in sustainable transportation policy and infrastructure development.
+
+
+### Background
+
+> About the Dataset
+
+This analysis utilizes a dataset from the Washington State Department of Licensing, capturing a comprehensive picture of electric vehicle (EV) title and registration activity. With 856,000 transactions recorded, this dataset provides an extensive view of EV adoption trends in Washington State. Updated as of November 15, 2023, it spans a range of 35 columns, each encapsulating crucial details of EV transactions. This includes the type of clean alternative fuel vehicle (encompassing all-electric, plug-in hybrids, or hydrogen-powered), VIN, model year, make, model, and primary use of the vehicle. Notably, it records the electric range, odometer readings, sale price, and transaction dates. Additionally, it integrates legislative factors like eligibility for HB 2042 incentives, indicating the policy's direct influence on EV transactions. Other data points include the county, city, state of residence, and postal code of the vehicle owner, alongside information about the electric utility serving the area. This dataset is instrumental in analyzing the evolving landscape of EV ownership and the impact of policy changes on vehicle adoption.
+  
+> Data Citation
+
+The dataset underpinning this analysis is credited to the Washington State Department of Licensing. As of November 15, 2023, it offers a detailed account of 856,000 electric vehicle transactions, reflecting changes in ownership and authorization for use on public roads. The dataset's breadth—covering a variety of variables from vehicle specifics to legislative compliance—makes it invaluable for examining the distribution and trends of electric vehicle registrations, especially in the context of legislative influences like HB 2042. This policy, aimed at fostering the adoption of cleaner vehicle technologies, is directly observable in the data, providing a unique opportunity to study its impact across different regions within the state.
+
+> Data Collection and Meaning of Variables
+
+The data was meticulously collected and updated by the Department of Licensing, ensuring accuracy and comprehensiveness. Each variable in the dataset offers a unique perspective on the electric vehicles registered, ranging from basic identification details to more specific attributes like electric range and vehicle type.
+
+> Data Citation
+  
+- Title: Electric Vehicle Title and Registration Activity
+- Date Created: April 17, 2019
+- Data Last Updated: November 15, 2023
+- Metadata Last Updated: November 15, 2023
+- Data Provided by: Washington State Department of Licensing
+- Dataset Owner: Research and Analysis Office, Department of Licensing
+
+The dataset can be accessed through the following URL: https://data.wa.gov/Transportation/Electric-Vehicle-Title-and-Registration-Activity/rpr4-cgyd. It is updated as of November 15, 2023, ensuring the analysis is based on the most recent and relevant data available.
+
+We acknowledge the Washington State Department of Licensing for compiling and providing this valuable dataset, which serves as the foundation for our analysis.
+
+> Background Information and Unusual Factors
+
+In the context of our analysis of electric vehicle (EV) registrations in Washington State, it is important to consider various background factors and unusual elements that could influence these trends. One significant factor is Washington State's environmental policies, which are notably aggressive and geared towards promoting EV adoption. These policies, coupled with incentives specifically designed for EV users, may contribute to regional variations in EV registrations. Such policies can make EVs more appealing in certain areas, potentially leading to uneven adoption rates across the state.
+
+Another aspect to consider is the geographical diversity of Washington State. The state's varied landscape, which ranges from bustling urban centers like Seattle to more remote and rural areas, can significantly impact the practicality and attractiveness of EV usage. Urban areas might see a higher adoption rate due to better infrastructure and shorter commute distances, whereas rural regions may have different patterns due to factors like range anxiety and the availability of charging stations.
+
+Legislative changes in the state also play a crucial role. Recent legislative actions, such as the enactment of House Bill 2042, which impacts the eligibility for Clean Alternative Fuel Vehicle (CAFV), could have a direct effect on the number of EV registrations. Such laws can either encourage or discourage residents from opting for electric vehicles, depending on the incentives or restrictions they introduce. Therefore, understanding these legislative nuances is key to comprehending the dynamics behind the EV registration trends observed in the state.
+
+> Intent for the Rest of the Report
+
+In the subsequent sections, we will embark on a detailed analysis of the dataset. We aim to identify patterns and correlations, perform statistical tests to validate our findings, and visualize the data for better comprehension. Our goal is to provide a clear and thorough understanding of the increase in electric vehicle registrations across different counties in Washington State and the implications of these findings.
+
+### Analysis
+
+In this section, we'll focus on numerical and graphical summaries of the data to gain insights into the trends and patterns of electric vehicle registrations in Washington State. The analysis will include exploratory data visualization and statistical summaries. In our examination of the trend of electric vehicle registrations, we will concentrate on a select group of counties that represent diverse population sizes and geographical settings within Washington State. These counties include King, Snohomish, Pierce, Clark, and Thurston. Each of these counties offers a unique context in terms of urbanization and population size, making them ideal candidates for analyzing the impact of population size on EV adoption rates.
+
+```{r, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE, fig.height = 3)
+library(tidyverse)
+library(lubridate)
+
+# Load the dataset
+raw_data <- read_csv("./../../data/Electric_Vehicle_Title_and_Registration_Activity.csv")
+
+```
+
+```{r, include=FALSE}
+
+filtered_data <- raw_data %>%
+  rename(
+    vin = `VIN (1-10)`,
+    vehicle_id = `DOL Vehicle ID`,
+    model_year = `Model Year`,
+    model = Model,
+    make = Make,
+    new_or_used = `New or Used Vehicle`,
+    transaction_date = `DOL Transaction Date`,
+    county = County,
+    city = City,
+    state_of_residence = `State of Residence`,
+    postal_code = `Postal Code`
+  ) %>%
+  select(vin, vehicle_id, model_year, model, make, new_or_used, transaction_date, county, city, state_of_residence, postal_code) %>%
+  mutate(year = as.integer(substring(transaction_date, nchar(transaction_date) - 3, nchar(transaction_date))))
+
+# Grouping by year and summarizing the number of registrations
+yearly_registrations <- filtered_data %>%
+  group_by(year) %>%
+  summarize(new_registrations = n())
+
+
+```
+
+> Firstly, we want to evaluate the registrations of electric vehicles across the entire Washington State to observe any trends.
+
+```{r, echo=FALSE}
+
+# Plotting the data
+ggplot(yearly_registrations, aes(x = year, y = new_registrations)) +
+  geom_line() +
+  geom_vline(xintercept = 2019, linetype = "dashed", color = "red") +
+  annotate("text", x = 2019, y = max(yearly_registrations$new_registrations), label = "HB 2042 Enacted", vjust = -1) +
+  labs(title = "Electric Vehicle Registrations Over the Years in Washington State",
+       subtitle = "Years 2010 to 2023",
+       x = "Year",
+       y = "Number of Registrations") +
+  theme_minimal()
+
+```
+
+We note from the graph that there is a significant shift in electric vehicle adoption in Washington State, particularly from 2020 to 2023. Initially, between 2010 and 2015, EV adoption was modest. However, There is a notable surge in registrations from 2020 to 2023. This could be due to the enactment of HB 2042 in 2019, which introduced incentives for electric and alternative fuel vehicles. This suggests a strong correlation between this legislative action and the surge in EV uptake. Consequently, our focus will be on analyzing the counties with more than a 20% year-on-year increase in EV registrations during this period of policy influence, from 2020 to 2023.
+
+
+> Next, we shift our focus to a more granular level, examining electric vehicle (EV) registration trends across different counties in Washington State. Our primary objective here is to identify counties that have shown the most substantial year-on-year increases in EV registrations. Specifically, we will calculate the percentage increase in EV registrations for each county from year to year and then highlight the top five counties with the highest increases. This approach will allow us to pinpoint regions where EV adoption is accelerating at the most rapid pace, providing valuable insights into regional variations in the adoption of sustainable transportation solutions.
+
+```{r, echo=FALSE}
+
+county_summary <- filtered_data %>%
+  filter(year %in% c(2020, 2023)) %>%
+  group_by(county, year) %>%
+  summarize(registrations = n(), .groups = 'drop') %>%
+  pivot_wider(names_from = year, values_from = registrations)
+
+county_summary <- county_summary %>%
+  mutate(
+    absolute_increase = `2023` - `2020`,
+    percentage_increase = (`2023` - `2020`) / `2020` * 100
+  )
+
+# Define a weighting factor (e.g., median of absolute increases)
+weighting_factor <- median(county_summary$absolute_increase, na.rm = TRUE)
+
+# Compute weighted increase
+county_summary <- county_summary %>%
+  mutate(weighted_increase = percentage_increase + (absolute_increase / weighting_factor))
+
+# Rank counties based on weighted increase
+top_counties_weighted <- county_summary %>%
+  arrange(desc(weighted_increase)) %>%
+  head(5)
+
+top_5_counties_names <- top_counties_weighted$county
+
+top_5_data <- filtered_data %>%
+  filter(county %in% top_5_counties_names, year %in% c(2020, 2021, 2022, 2023)) %>%
+  group_by(county, year) %>%
+  summarize(registrations = n(), .groups = 'drop')
+
+# Create the time series plot
+ggplot(top_5_data, aes(x = year, y = registrations, group = county, color = county)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "EV Registrations in Top 5 Counties with Highest Weighted Increase (2020-2023)",
+       x = "Year", y = "Number of Registrations",
+       color = "County") +
+  theme_minimal()
+
+```
+
+
+In this section, weighted analysis is essential, particularly because regions with initially low numbers of EVs can show disproportionately high percentage increases even with a small absolute rise in registrations. This phenomenon can skew the understanding of true growth patterns across different areas. By applying a weighted approach, the analysis accounts for these disparities, ensuring that the observed increases in registrations reflect meaningful trends in EV adoption rather than just statistical anomalies due to low baseline figures. This method provides a more accurate and insightful understanding of the actual progress and penetration of EVs across various regions.
+
+As evident from the graph depicting electric vehicle registrations between 2020 and 2023, King County leads with the highest raw number of EV registrations among these five counties.
+
+```{r, echo=FALSE}
+
+# Calculating year-on-year increase
+table_5_data <- top_5_data %>%
+  group_by(county) %>%
+  mutate(year_on_year_increase = (registrations / lag(registrations) - 1) * 100) %>%
+  na.omit()  # Remove NA values created by lag function
+
+# Computing the average increase
+average_increase_table <- table_5_data %>%
+  group_by(county) %>%
+  summarize(average_year_on_year_increase = mean(year_on_year_increase, na.rm = TRUE)) %>%
+  arrange(desc(average_year_on_year_increase))
+
+# Display the table
+print(average_increase_table)
+
+```
+
+The counties of Snohomish, Pierce, Clark, Thurston, and King showing the highest year-on-year percentage increases in electric vehicle (EV) registrations likely reflects a combination of baseline effects and recent growth dynamics. 
+
+
+
+In our analysis of electric vehicle (EV) registrations across different counties in Washington State, we plan to perform a means inference test to compare counties with large populations against those with small populations. To accurately categorize these counties, we will import an additional dataset: "WAOFM - April 1 - Population by State, County, and City, 1990 to Present". This dataset includes intercensal and postcensal population estimates for the state, counties, and cities from 1990 to the present.
+
+The dataset details are as follows:
+
+Title: WAOFM - April 1 - Population by State, County, and City, 1990 to Present
+Description: Demographics, including intercensal and postcensal population estimates for the state, counties, and cities from 1990 to present.
+Data Last Updated: July 6, 2023
+Metadata Last Updated: July 6, 2023
+Date Created: June 26, 2019
+Data Provided By: Washington State Office of Financial Management, Forecasting and Research Division
+Dataset Owner: Erica Gardner
+Views: 660
+Downloads: 1,331
+This dataset will enable us to accurately divide the counties into two groups based on population size, which is a crucial step before conducting the means inference test. By integrating this demographic data with our existing dataset on EV registrations, we can explore the relationship between county population size and the rate of EV adoption, providing valuable insights for policymakers and stakeholders involved in the promotion of sustainable transportation.
+
+```{r, echo=FALSE}
+
+pop_data <- read_csv("./../../data/wa_pop_by_county.csv")
+
+pop_data <- pop_data %>%
+  rename(
+    county = COUNTY,
+    pop_2020 = POP_2020,
+    pop_2021 = POP_2021,
+    pop_2022 = POP_2022,
+    pop_2023 = POP_2023
+  )
+
+# Calculate the average population for each county in 2020, 2021, 2022, 2023
+average_pop_data <- pop_data %>%
+  group_by(county) %>%
+  summarize(average_population = mean(c(pop_2020, pop_2021, pop_2022, pop_2023), na.rm = TRUE))
+
+# Determine the median of the average populations
+median_population <- median(average_pop_data$average_population, na.rm = TRUE)
+
+# Create a new variable in your dataset that indicates whether a county's average population is above or below the median
+pop_data <- pop_data %>%
+  left_join(average_pop_data, by = "county") %>%
+  mutate(population_group = ifelse(average_population > median_population, "Above Median", "Below Median"))
+
+```
+
+
+
+
+> Statistical Means Inference Analysis: Comparing EV Adoption Rates in Large vs Small County Sizes
+
+
+#### 1. Model Setup:
+We apply a Welch Two Sample t-test to compare the EV adoption rates between smaller and larger counties. The model assumes that the two samples are independent, normally distributed, and may have unequal variances.
+
+```{r, echo=FALSE}
+merged_data <- merge(county_summary, pop_data, by = "county")
+above_median_data <- subset(merged_data, population_group == "Above Median")$percentage_increase
+below_median_data <- subset(merged_data, population_group == "Below Median")$percentage_increase
+```
+
+#### 2. State Hypotheses:
+
+- Null Hypothesis (H0): There is no significant difference in the mean EV registrations between counties with large and small populations.
+- Alternative Hypothesis (H1): There is a significant difference in the mean EV registrations between counties with large and small populations.
+
+#### 3. Statistical Significance Level:
+We set our significance level, α, at 0.05.
+Zα = qnorm(97.5%) is used to determine the critical value for a two-tailed test.
+
+```{r, echo=FALSE}
+alpha <- 0.05
+z_alpha <- qnorm(1 - alpha/2)
+```
+
+#### 4. Conducting the Test and Calculating Confidence Interval:
+We conduct the Welch Two Sample t-test and calculate the 95% confidence interval for the difference in means.
+
+```{r, echo=FALSE}
+test_result <- t.test(above_median_data, below_median_data)
+
+# Extracting the confidence interval
+conf_interval <- test_result$conf.int
+
+test_result
+```
+
+The results of our statistical analysis, particularly the Welch Two Sample t-test, provide significant insights into the adoption rates of electric vehicles (EVs) in different county sizes within Washington State. The p-value obtained from our test, which is `r test_result$p.value`, plays a crucial role in interpreting these results. As per conventional statistical practices, if this p-value is less than 0.05, it indicates that the observed differences in EV adoption rates between smaller and larger counties are statistically significant, and thus, we reject the null hypothesis. This rejection suggests a meaningful disparity in EV registrations between these two groups of counties. 
+
+Furthermore, the analysis yields a 95% confidence interval, represented by `r conf_interval[1]` to `r conf_interval[2]`. This interval provides an estimated range of the difference in mean percentage increases in EV registrations between smaller and larger counties. Such an interval is critical in understanding the extent of variance and gives us a quantifiable measure to assess the impact of county size on EV adoption rates.
+
+Our analysis reveals a significant difference in the adoption rates of electric vehicles (EVs) between smaller and larger counties. Employing a Welch Two-Sample t-test, we demonstrate that smaller counties exhibit a markedly higher percentage increase in EV adoption compared to their larger counterparts. This disparity is statistically significant, with a p-value of 1.888e-05, far below the conventional threshold of 0.05. Moreover, we can confidently assert, with 95% confidence, that larger counties experience a lower percentage increase in EV adoption, ranging between 28.34246 and 10.70396 percentage points less than compared to smaller counties. These findings suggest that factors unique to smaller counties may be driving their accelerated EV adoption, while larger counties may face distinct challenges in promoting EV usage.
+
+
+
+### Discussion
+
+> Interpretation of Results
+
+The interpretation of the results from our analysis on electric vehicle (EV) registrations in Washington State has brought to light several important insights. Firstly, a distinct upward trend in EV registrations has been observed, especially after the year 2020. This significant increase is likely a consequence of legislative actions, such as the introduction of HB 2042, which appears to have had a substantial impact on consumer behavior towards EV adoption.
+
+In terms of regional variations, we noted considerable disparities in EV adoption rates across different counties. Counties such as King, Snohomish, Pierce, Clark, and Thurston, in particular, have demonstrated remarkable year-on-year increases in EV registrations. These variations could be attributed to a combination of factors, including environmental policies, geographic considerations, and socio-economic conditions prevalent in these regions.
+
+Another critical aspect of our analysis was the importance of weighted analysis. This approach highlighted the necessity of considering both the percentage increase and the absolute numbers to gain a true understanding of the growth in EV registrations. By doing so, we were able to reveal more nuanced adoption trends and avoid placing undue emphasis on areas that initially had low numbers of EVs.
+
+Furthermore, the comparison between the larger and smaller counties unveiled an intriguing pattern: smaller counties have experienced a greater percentage increase in EV registrations compared to their larger counterparts. This observation suggests that factors such as population density and urbanization might play significant roles in the adoption of EVs. The results from this comparison underscore the value of including weighted analysis in our study, providing a more comprehensive understanding of the factors influencing EV adoption across Washington State.
+
+> Shortcomings of the Analysis
+
+The analysis conducted on electric vehicle (EV) registrations in Washington State, while insightful, does encounter certain limitations that must be acknowledged. One primary shortcoming is related to the data used in the analysis. The reliance on registration data as the sole source may not completely encapsulate the actual usage patterns of EVs. Such data tends to overlook several critical aspects, including the lifespan of the vehicles and transactions occurring in the secondary market. These factors could significantly influence the understanding of EV adoption and usage trends.
+
+Additionally, the geographical scope of the analysis poses another limitation. By focusing exclusively on Washington State, the findings' applicability to broader contexts may be restricted. The dynamics of EV adoption can vary widely across different regions, influenced by a range of socio-economic, cultural, and policy factors. Consequently, while the study provides valuable insights into EV adoption within the confines of Washington State, its generalizability to other regions or states may be limited. This geographical limitation suggests a need for caution when attempting to extrapolate the study's findings to different contexts or to draw broader conclusions about EV adoption trends at a national or global level.
+
+> Future Directions
+
+As we look towards the future directions of our research on electric vehicle (EV) registrations in Washington State, several new avenues and questions emerge that merit exploration. A primary question that arises is how socioeconomic and infrastructural factors will predict the future growth of EV registrations in the state's counties. To delve into this, a range of variables could be considered, including median household income, population density, education levels, environmental awareness and attitudes, the average age of the population, the number and density of EV charging stations, and state and local incentives for EV purchases, along with environmental regulations and policies.
+
+In addressing these questions, we could adopt different methods to deepen our understanding. One approach is to forecast future growth trends in EV registrations, basing our predictions on current and projected values of these variables. A suitable modeling technique for this purpose would be a multivariate linear regression model, which would allow us to analyze the relationship between these variables and the rate of EV adoption comprehensively.
+
+To refine our understanding further, collecting new types of data will be crucial. This includes data on consumer behavior and attitudes, such as surveys on consumer perceptions, preferences, and barriers to EV adoption. Additionally, gathering information on the EV ownership lifecycle, which includes details on purchase, usage patterns, and disposal of EVs, would be valuable. Charging infrastructure details, such as the locations and types of EV charging stations and their usage patterns, are also essential. Economic indicators like household income distribution within counties and local economic incentives for EVs, along with environmental impact data such as local air quality indices and the adoption of renewable energy sources, can provide deeper insights. Keeping abreast of technological advancements in EV battery technology and emerging trends, along with policy and regulatory data impacting EV adoption and public initiatives promoting EVs, would be beneficial. Finally, data on traffic and commute patterns, energy prices and usage, and sociodemographic trends, such as population demographics, urbanization trends, and development patterns, will all play a pivotal role in shaping a more comprehensive understanding of EV adoption dynamics.
+
+
+> Primary Conclusions
+
+The primary conclusion of this study is that Washington State has experienced a significant increase in EV registrations, influenced by factors like legislative policies and regional characteristics. Counties with smaller populations have shown a higher percentage increase in EV registrations compared to larger counties. These findings are supported by statistical analysis of the dataset, revealing clear trends and regional disparities in EV adoption.
+
+In sum, this analysis contributes to a broader understanding of the factors driving EV adoption in Washington State, offering valuable insights for policymakers and stakeholders in the realm of sustainable transportation.
+
+### References
+
+Data used in this analysis was sourced from two primary datasets. The first is the "Electric Vehicle Title and Registration Activity" dataset^[Title: Electric Vehicle Title and Registration Activity; Date Created: April 17, 2019; Data Last Updated: November 15, 2023; Metadata Last Updated: November 15, 2023; Data Provided by: Washington State Department of Licensing; Dataset Owner: Research and Analysis Office, Department of Licensing. The dataset can be accessed at [Electric Vehicle Title and Registration Activity](https://data.wa.gov/Transportation/Electric-Vehicle-Title-and-Registration-Activity/rpr4-cgyd).], which provides a comprehensive view of EV adoption trends in Washington State. The second dataset is the "WAOFM - April 1 - Population by State, County, and City, 1990 to Present"^[Title: WAOFM - April 1 - Population by State, County, and City, 1990 to Present; Description: Demographics, including intercensal and postcensal population estimates for the state, counties, and cities from 1990 to present; Data Last Updated: July 6, 2023; Metadata Last Updated: July 6, 2023; Date Created: June 26, 2019; Data Provided By: Washington State Office of Financial Management, Forecasting and Research Division; Dataset Owner: Erica Gardner. Views: 660; Downloads: 1,331.]. This dataset includes demographic information crucial for dividing counties into groups based on population size, an essential step for the means inference test. By integrating this demographic data with our EV registrations dataset, we explore the relationship between county population size and EV adoption rate, offering valuable insights for policymakers and stakeholders.
+
+We acknowledge the Washington State Department of Licensing and the Washington State Office of Financial Management, Forecasting and Research Division for compiling and providing these valuable datasets.
+
+

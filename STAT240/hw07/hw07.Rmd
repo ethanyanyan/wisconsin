@@ -1,0 +1,247 @@
+---
+author: "ETHAN YAN"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE, fig.height = 3)
+library(tidyverse)
+library(kableExtra)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+\newcommand{\E}{\mathsf{E}}
+\newcommand{\Var}{\mathsf{Var}}
+\renewcommand{\prob}{\mathsf{P}}
+
+
+## Assignment 7
+
+#### Due Saturday, October 28, 11:59 PM CT
+
+### Preliminaries
+
+- Directories
+    - COURSE/homework/
+    - COURSE/homework/hw07/
+    - COURSE/data/
+    - COURSE/scripts/
+- Files
+  - COURSE/homework/hw07/hw07.Rmd
+  - COURSE/scripts/viridis.R
+  - COURSE/scripts/ggprob.R
+
+### Aims
+
+- Practice probability distributions
+
+### Problems
+
+######  1.
+A discrete random variable $X$ has possible values 0, 1, 2, 3, 4, 5, 6, 7, 8 with the following partial probability distribution.
+The missing probabilities $\prob(X=7)$ and $\prob(X=8)$ are equal to each other.
+
+```{r, echo = FALSE}
+set.seed(20221021)
+x = 0:8
+p = rnorm(7,5,2.1)
+p = sort(round(p / sum(p) * 0.84, 2))
+p1 = tibble(x = x, p = c(p, rep(NA,2)))
+
+p1_tab = p1 %>% 
+  mutate(x = str_c(x)) %>% 
+  pivot_wider(names_from = x, values_from = p) %>% 
+  mutate(x = "P(X=x)", .before = `0`) 
+
+p1_tab %>% 
+  kable() %>% 
+  kable_styling(position = "center", full_width = FALSE)
+```
+
+- Put the values `x = 0:8` and the tabled probabilities `p` into a data frame (use `tibble()`).
+
+```{r}
+
+df = tibble(x=seq(0, 8, by=1), p = c(0.04, 0.06, 0.11, 0.12, 0.14, 0.17, 0.2, NA, NA))
+df
+
+```
+
+- Write code to calculate the missing values for $\prob(X=7) = \prob(X = 8)$ and replace the missing values with these calculated values into your data frame.
+
+```{r}
+
+curr_total = sum(df$p, na.rm = TRUE)
+last_vals = (1 - curr_total) / 2
+df = df %>% 
+  mutate(p = ifelse(x %in% c(7, 8), last_vals, p))
+  
+df
+
+```
+
+- Verify that the sum of all probabilities is 1.
+
+```{r}
+
+sum(df$p, na.rm = TRUE)
+
+```
+
+
+
+###### 2.
+For the probability distribution from the previous problem:
+  
+- Calculate the mean, variance, and standard deviation.
+
+```{r}
+
+df2 = df %>%
+  mutate(xp = x * p) %>%
+  mutate(mu = sum(xp)) %>%
+  mutate(v = (x - mu)^2 * p ) %>% 
+  summarize(mu = sum(xp),
+            sigma2 = sum(v),
+            sigma = sqrt(sigma2))
+
+df2
+
+mu = df2$mu
+sigma = df2$sigma
+
+```
+
+
+
+
+###### 3.
+For the probability distribution from Problem 1:
+  
+- Draw a graph of the probability distribution with line segments at each possible value.
+- Add to the graph a dashed red line at the mean and dotted black lines that are one and two standard deviations above and below the mean.
+  
+  
+```{r}
+
+plot1 = ggplot(df, aes(x = x, y = p)) +
+  geom_segment(aes(xend = x, yend = 0), color = "blue", size=2) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = mu, color = "red", linetype = "dashed") +
+  geom_vline(xintercept = mu + c(-1,1)*sigma,
+             color = "black",
+             linetype = "dotted") +
+  geom_vline(xintercept = mu + c(-1,1)*sigma * 2,
+             color = "black",
+             linetype = "dotted") +
+  ylab("P(X=x)") +
+  labs(title="Distribution of X",
+       subtitle="Mean and one and two standard deviations above and below the mean drawn")
+
+plot1
+
+```
+  
+
+
+
+###### 4.
+For the probability distribution from Problem 1:
+  
+- Add to the `tibble` for the probability distribution for the random variable $X$ a column named `cdf` which contains the value $F(x) = \prob(X \le x)$.
+    - Note that for this example, $F(0) = \prob(X = 0) = 0.04$ and $F(1) = \prob(X = 0) + \prob(X = 1) = 0.10$.
+- Print the entire modified data frame.
+
+```{r}
+
+df3 = df %>% mutate(cdf = cumsum(p))
+
+print(df3, n=Inf)
+
+```
+
+
+The function $F(x)$ is known as the *cumulative distribution function*. In this example, $F(x) = 0$ for all $x < 0$, $F(x) = 1$ for all $x > 8$, and $0 < F(x) < 1$ if $0 < x < 8$. The function `cumsum()` may be very useful when calculating $F(x)$.
+  
+
+
+###### 5.
+Using the probability distribution from the previous problem:
+   
+- Draw a graph to display the cumulative distribution function $F(x)$ with a step function.
+    - For the purposes of the graph only, it may be helpful to add rows with $x=-1$ and $x=9$.
+    - The **ggplot2** function `geom_step()` will be very useful to make this plot. See the help page or search the internet for an example on how to use it.
+    
+    
+```{r}
+
+df4 = df3 %>%
+  add_row(x = -1, cdf = 0) %>%
+  add_row(x = 9, cdf = 1)
+
+ggplot(df4, aes(x=x, y= cdf)) +
+  geom_step() + 
+  labs(x = "X", y = "CDF",
+       title = "Cumulative Distribution Function (CDF) of X")
+
+```
+
+
+
+###### 6.
+The $p$ quantile of a probability distribution is any location $a$ where $\prob(X \le a) \ge p$ and $\prob(X \ge a) \ge 1-p$. For a continuous random variable with a density function, ther is typically a one-to-one correspondence between the quantile $a$ and the probability $p$. In contrast, for a discrete distribution such as the one featured in this assignment, the same value $a$ may be the quantile for many different $p$ and a few key values of $p$ have multiple possible quantile values $a$. The quantile function is essentially the inverse function $F^{-1}(p)$, which maps using the graph of $F$ from $p$ on the y-axis to the quantile $a$ on the x-axis.
+  
+- By examining the graph of the CDF in the previous problem, identify the 0.2, 0.3, 0.4, and 0.5 quantiles of the probability distribution of $X$. (You can do this without code, but a pat on the back if you can write code to find the values.)
+
+> Quantile 0.2 is roughly 2, Quantile 0.3 is roughly 3, Quantile 0.4 is roughly 4, and Quantile 0.5 is roughly 5
+
+- Explain why there are multiple values $a$ which are 0.1 quantiles of the distribution and specify all such values.
+
+> This is because the cumulative distribution function (CDF) increases in a step-like manner at each distinct value of the random variable "X." When you have multiple data points with the same value in the distribution, the CDF remains constant over that interval, resulting in multiple quantile values for the same probability.
+
+> The values are x = 1, x = 2.
+
+
+
+
+###### 7.
+The code below draws a graph of a discrete distribution called the *binomial distribution* with parameters $n = 5$ and $p = 0.4$. The median of the distribution is the 0.5 quantile. 
+  
+```{r}
+gbinom(5, 0.4)
+```
+  
+- Based on the graph, what value of $x$ does the median have? Compare to the value of `qbinom(0.5, 5, 0.4)`.
+
+> Based on the graph, the median is 2, as that is the "middle" value of all the values present. `qbinom(0.5, 5, 0.4)` is equal to 2 as well, thus validating my claim
+
+```{r}
+
+qbinom(0.5, 5, 0.4)
+
+```
+
+
+
+###### 8.
+The code below draws a graph of a continuous normal distribution with parameters $\mu = 50$ and $\sigma = 10$ with the area to the left of 60 shaded.
+  
+```{r}
+gnorm(50, 10) +
+  geom_norm_fill(mu = 50, sigma = 10, b = 60) +
+  scale_x_continuous(breaks = seq(30, 70, 10))
+```
+  
+The value of `pnorm(60, 50, 10)` is the area to the left of 60 under this density curve.
+
+```{r}
+pnorm(60, 50, 10)
+```
+
+- Is the 0.80 quantile of this distribution smaller than, equal to, or greater than 60? Briefly explain.
+
+> The shaded reagion on and to the left of 60 thus represents the 0.8413447 quantile, which means 84.13447% of the data falls below 60. Since we want the 0.8 quantile, which is the point where 80% of the data falls under, this would be to the left of 60, which is smaller than 60. Therefore, the 0.8 quantile is smaller than 60.
+    
+ 

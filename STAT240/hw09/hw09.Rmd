@@ -1,0 +1,392 @@
+---
+author: "Ethan Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE, fig.height = 3)
+library(tidyverse)
+library(kableExtra)
+library(broman)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+theme_set(theme_minimal())
+```
+
+\newcommand{\E}{\mathsf{E}}
+\newcommand{\Var}{\mathsf{Var}}
+\newcommand{\SD}{\mathsf{SD}}
+\renewcommand{\prob}{\mathsf{P}}
+
+## Assignment 9
+
+#### Due Friday, November 10, 11:59 PM CT
+
+### Preliminaries
+
+- Directories
+    - COURSE/homework/
+    - COURSE/homework/hw10/
+    - COURSE/data/
+    - COURSE/scripts/
+- Files
+  - COURSE/homework/hw10/hw10.Rmd
+  - COURSE/data/chimpanzees.csv
+  - COURSE/scripts/viridis.R
+  - COURSE/scripts/ggprob.R
+
+### Data
+
+- The data are in the file `chimpanzee.csv`.    
+- These data are artificial, but created to match details from a 2011 PNAS paper on chimpanzee prosocial choice.  
+- See the [Course Notes and Case Studies Chapter 18](https://bookdown.org/bret_larget/stat-240-case-studies/chimpanzees-and-prosocial-choice.html) for background on the data.
+
+### Aims
+
+- Practice the normal distribution and the central limit theorem
+- Practice inference on proportions
+
+## Problems
+
+#### 1
+Let $X \sim \text{Normal}(200, 40)$
+so $\mu = 200$ and $\sigma = 40$.
+
+- Find and display the values $x_1$ and $x_2$ such that:
+  - $x_1 < \mu < x_2$;
+  - $x_1$ and $x_2$ are equidistant from $\mu$ ($\mu - x_1 = x_2 - \mu$);
+  - The area under the density between $x_1$ and $x_2$ equals 0.8 ($\prob(x_1 < X < x_2) = 0.8$).
+- Create a graph showing the normal density with the area between $x_1$ and $x_2$ being shaded.
+
+```{r}
+
+mu <- 200
+sigma <- 40
+
+x1 <- qnorm(0.1, mean = mu, sd = sigma)
+x2 <- qnorm(0.9, mean = mu, sd = sigma)
+
+cat("x1 is:", x1, "\n")
+cat("x2 is:", x2, "\n")
+
+gnorm(mu, sigma) +
+  geom_norm_fill(mu, sigma, a = x1, b = x2) +
+  theme_minimal() +
+  labs(title="Normal Distribution with 80% Probability Area",
+       subtitle="Shaded area represents P(x1 < X < x2) = 0.8",
+       x="X",
+       y="Density") +
+  geom_vline(xintercept = mu, linetype="dashed", color = "red")
+
+
+```
+
+#### 2
+Heights in a population of American adult males are approximately normal with a mean of 70 inches and a standard deviation of 3 inches.
+  
+- What proportion of American adult males are taller than two meters tall? (One meter equals 39.37 inches.)
+- What is the 95th percentile of American adult male height?
+- If we took a random sample of 250 men, how likely is it that the sample mean of their heights would be between 69.5 and 70.5 inches?
+
+```{r}
+
+mu2 <- 70
+sigma2 <- 3
+
+# Proportion of American adult males taller than two meters
+two_meters_in_inches <- 2 * 39.37
+proportion_above_two_meters <- 1 - pnorm(two_meters_in_inches, mu2, sigma2)
+
+cat("Proportion of American adult males taller than two meters is:", proportion_above_two_meters, "\n")
+
+# 95th percentile of American adult male height
+height_95th_percentile <- qnorm(0.95, mu2, sigma2)
+
+cat("The 95th percentile of American adult male height is:", height_95th_percentile, "inches\n")
+
+# Probability that the sample mean of 250 men's heights is between 69.5 and 70.5 inches
+sample_size <- 250
+standard_error <- sigma2 / sqrt(sample_size)
+lower_limit <- 69.5
+upper_limit <- 70.5
+
+probability_sample_mean_between <- pnorm(upper_limit, mu2, standard_error) - pnorm(lower_limit, mu2, standard_error)
+
+cat("The likelihood that the sample mean of 250 random men's heights would be between 69.5 and 70.5 inches is:", probability_sample_mean_between, "\n")
+
+```
+
+#### 3
+Suppose you are playing a coin flipping game with a friend, where you suspect the coin your friend provided is not a fair coin.  In fact, you think the probability the coin lands heads is less than 0.5.  To test this, you flip the coin 100 times and observe the coin lands heads 35 times.
+  
+- If you assume the coin is fair (i.e., the probability of the coin landing heads is 0.5), what is the probability of observing 35 heads or fewer, calculated using an exact model?
+
+- Calculate the previous probability, but use a normal approximation to achieve a numerical value. What is the relative error in this approximation? (Relative error is the absolute difference divided by the exact value, times 100%.)
+
+- How small would $p$ need to be (rounded to the nearest 0.01) for the probability of observing 35 or fewer heads to be at least 0.05?
+
+```{r}
+
+flips <- 100
+observed_heads <- 35
+
+# Exact probability using a binomial test
+exact_probability <- pbinom(observed_heads, flips, prob = 0.5)
+
+cat("The exact probability is:", exact_probability, "\n")
+
+mu3 <- (flips * 0.5)
+sigma3 <- sqrt(flips * 0.5 * (1 - 0.5))
+
+normal_approx <- pnorm(observed_heads + 0.5, mu3, sigma3)
+
+relative_error <- abs(exact_probability - normal_approx) / exact_probability * 100
+
+cat("The probability using normal approximation is:", normal_approx, "\n")
+cat("The relative error in the normal approximation is:", relative_error, "%\n")
+
+# Calculating the value of p where observing 35 or fewer heads has at least 0.05 probability
+lower_p_value <- qbinom(0.05, flips, observed_heads / flips) / flips
+
+cat("The value of p for which the probability of observing 35 or fewer heads is at least 0.05 is:", round(lower_p_value, 2), "\n")
+
+
+```
+
+- Does it seem plausible that the coin is fair? Briefly explain.
+
+- Given the exact probability of observing 35 heads or fewer out of 100 flips of a fair coin is approximately 0.001758821, this indicates a very low likelihood of such an outcome occurring by chance if the coin were indeed fair. The threshold for "commonly" statistically significant results in many fields is p < 0.05. Since our calculated p-value is much lower than 0.05, this would typically lead us to reject the null hypothesis that the coin is fair, suggesting that the coin is likely biased.
+
+
+
+#### 4
+This problem uses the chimpanzee prosocial experiment data we have been using in lecture. For this problem, we will:
+  
+- Consider only those trials with a partner.
+- Make an assumption that there is a universal $p_{\text{partner}}$ representing the probability any chimpanzee would make a prosocial choice in a single trial under the experimental conditions we have been examining.  
+- Assume that all trials are independent.
+
+Do the following:
+
+- Read in the `chimpanzee.csv` data file.  
+- Create a summary table with:
+  - one row for all trials with a partner and one row for all trials without a partner;
+  - a column `prosocial` with the combined number of prosocial choices made (separate values for with and without a partner);
+  - a column `selfish` for the number of selfish choices made;
+  - a column `n` with the combined number of trials (values should be 610 and 180); 
+  - a column `p_prosocial` with the proportion of prosocial choices made.
+- Print the entire table
+
+```{r}
+
+raw_chimpanzee = read_csv("./../../data/chimpanzee.csv")
+
+summarized_data = raw_chimpanzee %>%
+  mutate(partner_present = !(partner == 'none')) %>%
+  group_by(partner_present) %>%
+  summarise(prosocial = sum(prosocial),
+            selfish = sum(selfish),
+            n = sum(prosocial) + sum(selfish),
+            p_prosocial = sum(prosocial) / (sum(prosocial) + sum(selfish)))
+
+print(summarized_data, n = Inf)
+
+```
+
+
+
+#### Solution
+
+
+
+
+
+
+#### 5
+Define $p_1 = p_{\text{partner}}$ and $p_2 = p_{\text{no partner}}$ to be the long-run probabilities that chimpanzees make the prosocial choices with and without a partner, respectively, in the experimental conditions. (*You can decide which subscripts to use*.) Note that these parameter definitions implicitly assume that all trials are independent and that the identities of the chimpanzees and their partners do not affect the prosocial trial probabilities. These assumptions could and should be examined, but complete these problems as if the assumptions are accurate.
+
+- Write a statistical model for the data, $X_1$ and $X_2$, the number of pro-social choices under the two conditions. (It may be helpful to copy and edit LaTeX syntax from the lecture notes if you want to make the knitted document look pretty, but plain text is also fine.)
+
+$$
+X_1 \sim \text{Binomial}(610,p_1) \text{ where }p_1 = 0.589
+$$
+
+$$
+X_2 \sim \text{Binomial}(180,p_2) \text{ where }p_2 = 0.461
+$$
+
+- Use the data summary in Problem 4 to construct a 95% confidence interval for  $p_{\text{partner}} - p_{\text{no partner}}$ (or $p_1 - p_2$), using the Agresti-Coffe method for confidence intervals for differences in proportions.
+
+```{r}
+
+binom_se =  function(n, p){
+  return ( sqrt( p*(1-p)/n) )
+}
+
+binom_ci = function(est, se, conf=0.95){
+  z = qnorm(1 - (1 - conf)/2)
+  me = z * se
+  ci = est + c(-1,1)*me
+  return(ci)
+}
+
+# For trials with a partner
+x1 <- 359
+n1 <- 610
+p_tilde1 <- (x1 + 2) / (n1 + 4)
+se_agresti1 <- binom_se(n1 + 4, p_tilde1)
+ci_agresti1 <- binom_ci(p_tilde1, se_agresti1)
+
+# For trials without a partner
+x2 <- 83
+n2 <- 180
+p_tilde2 <- (x2 + 2) / (n2 + 4)
+se_agresti2 <- binom_se(n2 + 4, p_tilde2)
+ci_agresti2 <- binom_ci(p_tilde2, se_agresti2)
+
+diff_est <- p_tilde1 - p_tilde2
+diff_se <- sqrt(se_agresti1^2 + se_agresti2^2)
+
+ci_diff <- binom_ci(diff_est, diff_se)
+round(ci_diff, 3)
+
+```
+
+- Interpret this confidence interval in context, following model language in lecture notes.
+
+> I am 95% confident that the interval from 0.044 to 0.208 contains the true difference in the proportion of pro-social choices made by chimpanzees when a partner is present versus when no partner is present.
+
+
+
+
+
+#### 6
+Using data and parameters definitions from previous problems, test the hypothesis that $p_1 = p_{\text{partner}} = 0.5$ versus the two-sided alternative.
+
+- State null and alternative hypotheses.
+- Write the statistical model for $X_1$, the number of pro-social choices.
+- State the sampling distribution of $X_1$ if the null hypothesis is true.
+- Which possible outcomes of $X_1$ have evidence against the null hypotheses at least as strong as the observed data, $x_1 = 359$?
+- Calculate and report a p-value.
+- Following style from lecture examples, write an interpretation of the results in context without statistical jargon, summarizing the statistical evidence to support your conclusions in a short phrase within a pair of parentheses.
+
+> [hypotheses]
+
+$$
+H_0: p_1 = 0.5 \\
+H_a: p_1 \neq 0.5
+$$
+
+> [model]
+
+$$
+X_1 \mid p_1 \sim \text{Binomial}(610,p_1)
+$$
+
+> [sampling distribution]
+
+If the null hypothesis is true, then
+
+$$
+X_1 \sim \text{Binomial}(610,0.5)
+$$
+
+> [outcomes]
+
+- The $\text{Binomial}(610,0.5)$ distribution has mean 305 and is symmetric, which suggests outcomes 251 or smaller or 359 or higher have the same or smaller probability as $X=359$ under the null hypothesis.
+
+- This is the distribution we assume is true (based on the null hypothesis).
+
+```{r graph-ho, fig.height=3}
+gbinom(610, 0.5, scale=TRUE) +
+  geom_vline(xintercept=359, color="red",
+             linetype="dashed") +
+  
+  theme_bw()
+```
+
+> [p-value]
+
+```{r}
+
+pvalue = pbinom(251, 610, 0.5) + (1 - pbinom(358, 610, 0.5))
+pvalue
+
+```
+
+> [conclusion]
+
+- If the null hypothesis were true,
+we would expect to see a result this extreme with probability of 1.405895e-05, yet it happened.
+- There is strong evidence that the null hypothesis is false and that the true value of $p$ is closer to the observed proportion of $\hat{p} \approx 0.589$.  
+     - It is more plausible that $p$ is not 0.5 and we just observed typical data, than it is that $p=0.5$ and we just witnessed a very improbable outcome.
+
+
+
+#### 7
+Repeat Problem 6, but use the data for all trials **without a partner** for an assumed universal parameter $p_2 = p_{\text{no partner}}$, using a statistical model for $X_2$, the total number of prosocial choices made without a partner present in the experiment.
+
+> [hypotheses]
+
+$$
+H_0: p_2 = 0.5 \\
+H_a: p_2 \neq 0.5
+$$
+
+> [model]
+
+$$
+X_2 \mid p_2 \sim \text{Binomial}(180,p_2)
+$$
+
+> [sampling distribution]
+
+$$
+X_2 \sim \text{Binomial}(180,0.5)
+$$
+
+> [outcomes]
+
+- The $\text{Binomial}(180,0.5)$ distribution has mean 90 and is symmetric, which suggests outcomes 83 or smaller or 97 or higher have the same or smaller probability as $X=83$ under the null hypothesis.
+
+- This is the distribution we assume is true (based on the null hypothesis).
+
+```{r fig.height=3}
+gbinom(180, 0.5, scale=TRUE) +
+  geom_vline(xintercept=83, color="red",
+             linetype="dashed") +
+  
+  theme_bw()
+```
+
+> [p-value]
+
+```{r}
+
+pvalue2 = pbinom(83, 180, 0.5) + (1 - pbinom(96, 180, 0.5))
+pvalue2
+
+```
+
+> [conclusion]
+
+- The p-value of approximately 0.3325791 indicates that, if the null hypothesis were true (that is, if the true probability of a chimpanzee making a pro-social choice were exactly 0.5), there is a 33.25791% chance of observing a result as extreme as, or more extreme than, the one observed (83 out of 180 pro-social choices) purely by random chance. This p-value is greater than the conventional threshold of 0.05, which suggests that we do not have enough evidence to reject the null hypothesis. 
+
+
+
+
+
+
+#### 8
+The previous statistical inferences assume a binomial model for the observed number of prosocial choices for trials with and without a partner.
+
+State one criticism where reality may differ from the assumptions, possibly leading to misleading conclusions.
+(What is an example of an assumption of the binomial model which, in the given context, is questionable?)
+
+> The binomial model operates under several key assumptions that may not hold true in the context of the chimpanzee experiment, which could potentially lead to misleading conclusions. One such assumption is that of independence of trials. The binomial model assumes that each trial is independent of the others, meaning the outcome of one trial does not affect the outcome of another.
+
+> In the context of the chimpanzee experiment, the independence assumption may be questionable because:
+
+- If the same chimpanzees are paired multiple times, the social dynamics between specific pairs of chimpanzees could influence their behavior. For example, a chimpanzee might be more likely to make a prosocial choice if it has had positive interactions with the partner in the past. 
+
