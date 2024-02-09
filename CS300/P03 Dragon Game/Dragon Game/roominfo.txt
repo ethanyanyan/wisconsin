@@ -1,0 +1,13 @@
+1 | Starting Room | S
+2 | This is Room2
+3 | This is Room3 | L
+4 | This is Room4
+5 | This is Room5
+6 | This is Room6
+7 | This is Room7
+8 | This is Room8 
+9 | This is Room9
+10 | This is Room10
+11 | This is Room11 | P
+12 | This is Room12
+13 | Dragon's Lair | T

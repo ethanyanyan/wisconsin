@@ -1,0 +1,7 @@
+ water: 20  
+ :
+candy:50
+ soda: ten
+nuts: 
+chocolate : 30 
+juice: 10

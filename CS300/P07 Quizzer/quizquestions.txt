@@ -1,0 +1,50 @@
+Orange's True Color
+What Color is an Orange?
+6
+red
+orange
+cyan
+violet
+blue
+green
+1
+3
+Circle's Roundness
+How round is a circle?
+3
+not very
+perfectly
+not at all
+1
+2
+State of Mine
+In which US State is the University of Wisconsin?
+6
+Nebraska
+California
+Florida
+Michigan
+Wisconsin
+Illinois
+4
+3
+Birds of a Feather
+What is one of the colors of a Blue Jay?
+6
+Green
+Pink
+Yellow
+Orange
+Red
+Blue
+5
+3
+State Capitol
+What is the capital of Wisconsin?
+4
+Milwaukee
+Wisconsin City
+Madison
+Green Bay
+2
+3
