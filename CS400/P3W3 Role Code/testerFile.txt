@@ -1,0 +1,3 @@
+Seattle, America/Los_Angeles
+Denver, America/Denver
+Chicago, America/Chicago

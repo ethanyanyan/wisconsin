@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "BackendDeveloperTests",
+            "request": "launch",
+            "mainClass": "BackendDeveloperTests",
+            "projectName": "P3W3 Role Code_fe12fe6c"
+        },
+        {
+            "type": "java",
+            "name": "JUnit test",
+            "request": "launch",
+            "mainClass": "",
+            "args": "",
+            "cwd": "/Users/ethanyan01/Desktop/CS400/P3W3 Role Code"
+        }
+    ]
+}
