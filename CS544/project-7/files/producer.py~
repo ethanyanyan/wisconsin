@@ -1,0 +1,31 @@
+from kafka import KafkaAdminClient
+from kafka.admin import NewTopic
+from kafka.errors import UnknownTopicOrPartitionError
+import time
+
+broker = 'localhost:9092'
+admin_client = KafkaAdminClient(bootstrap_servers=[broker])
+
+try:
+    admin_client.delete_topics(["temperatures"])
+    print("Deleted topics successfully")
+except UnknownTopicOrPartitionError:
+    print("Cannot delete topic/s (may not exist yet)")
+
+time.sleep(3) # Deletion sometimes takes a while to reflect
+
+# TODO: Create topic 'temperatures' with 4 partitions and replication factor = 1
+
+try:
+    admin_client.create_topics([NewTopic("temperatures", 4, 1)])
+except TopicAlreadyExistsError:
+    pass
+
+print("Topics:", admin_client.list_topics())
+
+
+import weather
+
+# Runs infinitely because the weather never ends
+for date, degrees in weather.get_next_weather(delay_sec=0.1):
+    print(date, degrees) # date, max_temperature

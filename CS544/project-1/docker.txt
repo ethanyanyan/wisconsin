@@ -1,0 +1,8 @@
+Client: Docker Engine - Community
+ Version:           24.0.5
+ API version:       1.43
+ Go version:        go1.20.6
+ Git commit:        ced0996
+ Built:             Fri Jul 21 20:35:18 2023
+ OS/Arch:           linux/amd64
+ Context:           default

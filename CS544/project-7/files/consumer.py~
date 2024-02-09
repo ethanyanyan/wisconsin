@@ -1,0 +1,75 @@
+from kafka import KafkaConsumer, TopicPartition
+import report_pb2
+import os
+import json
+import sys
+import threading
+
+broker = 'localhost:9092'
+topic = 'temperatures'
+partitions = [int(p) for p in sys.argv[1:]]  # Read partitions from command-line arguments
+
+def load_or_initialize_partition_data(partition):
+    path = f'partition-{partition}.json'
+    if os.path.exists(path):
+        with open(path, 'r') as file:
+            return json.load(file)
+    else:
+        return {"partition": partition, "offset": 0}
+
+def update_stats(partition_data, record):
+    report = record.value
+    date = report.date
+    month, year = date[:7].split('-')
+    month_year = f"{month}-{year}"
+    
+    if month_year not in partition_data:
+        partition_data[month_year] = {"count": 0, "sum": 0, "avg": 0, "start": date, "end": date}
+    
+    month_data = partition_data[month_year]
+    if date <= month_data["end"]:
+        return  # Duplicate or out-of-order message
+
+    month_data["count"] += 1
+    month_data["sum"] += report.degrees
+    month_data["avg"] = month_data["sum"] / month_data["count"]
+    month_data["end"] = date
+
+def write_atomic_json(data, path):
+    print("writing")
+    temp_path = path + ".tmp"
+    with open(temp_path, "w") as f:
+        json.dump(data, f, indent=4)
+    os.rename(temp_path, path)
+
+def process_partition(partition):
+    consumer = KafkaConsumer(
+        bootstrap_servers=[broker],
+        group_id='stats_consumer',
+        value_deserializer=lambda m: report_pb2.Report.FromString(m),
+        enable_auto_commit=False
+    )
+
+    tp = TopicPartition(topic, partition)
+    consumer.assign([tp])
+
+    partition_data = load_or_initialize_partition_data(partition)
+
+    consumer.seek(tp, partition_data["offset"])
+
+    while True:
+        messages = consumer.poll(timeout_ms=1000)
+        for record in messages.get(tp, []):
+            update_stats(partition_data, record)
+            partition_data["offset"] = record.offset + 1
+            write_atomic_json(partition_data, f'partition-{partition}.json')
+
+if __name__ == "__main__":
+    threads = []
+    for partition in partitions:
+        thread = threading.Thread(target=process_partition, args=(partition,))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()  # Wait for all threads to finish

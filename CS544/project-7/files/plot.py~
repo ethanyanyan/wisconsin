@@ -1,0 +1,37 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import json
+import os
+
+def read_latest_month_data(partition_files, months):
+    month_data = {}
+    for month in months:
+        latest_year = None
+        latest_data = None
+        for file in partition_files:
+            if os.path.exists(file):
+                with open(file, 'r') as f:
+                    data = json.load(f)
+                    if month in data:
+                        years = data[month].keys()
+                        latest = max(years)
+                        if latest_year is None or latest > latest_year:
+                            latest_year = latest
+                            latest_data = data[month][latest]
+        if latest_data:
+            month_data[month] = latest_data['avg']
+    return month_data
+
+def plot_monthly_averages(month_data):
+    month_series = pd.Series(month_data)
+    fig, ax = plt.subplots()
+    month_series.plot.bar(ax=ax)
+    ax.set_ylabel('Avg. Max Temperature')
+    plt.tight_layout()
+    plt.savefig("/files/month.svg")
+
+if __name__ == "__main__":
+    partition_files = [f'/files/partition-{i}.json' for i in range(4)]
+    months = ['January', 'February', 'March']
+    month_data = read_latest_month_data(partition_files, months)
+    plot_monthly_averages(month_data)
