@@ -14,3 +14,8 @@
 - **CS577 Intro to Algorithms**: Taken with Marc Renault
 - **CS544 Intro to Big Data Systems**: Taken with Tyler Caraza-Harter
 
+## Spring 2024
+- **STAT340 Statistical Modelling I**: Taken with Bi Cheng Wu
+- **STAT311 Intro to Theory and Methods of Mathematical Statistics**: Taken with Miranda Rintoul
+- **CS506 Software Engineering**: Taken with Scott Swanson
+- **CS354 Intro to Machine Organization**: Taken with Debra Deppeler & James Sorenson
