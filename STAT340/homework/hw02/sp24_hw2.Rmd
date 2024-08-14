@@ -1,0 +1,270 @@
+---
+title: "Homework 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+
+## 1. Independence of Events <small>(8 points, 2 points each)</small>
+
+A fair four-sided die (numbered 1,2,3 and 4) is rolled three times. Consider the following three events:
+
+A: "The sum is 6 or less"
+
+B: "The second roll is more than the first"
+
+C: "The sum is odd"
+
+D: "Exactly two of the rolls are the same"
+
+a. Are A and B independent?
+b. Are C and D independent?
+c. Are A and C independent?
+d. Are B and D independent?
+
+> We say that two events E1 and E2 are independent if Pr[E1∩E2]=Pr[E1]Pr[E2].
+
+- Part a
+  - Consider the Event space of A. Sum of 3 (Only 1 combination): (1,1,1), Sum of 4 (3 combinations): (1,1,2), (1,2,1), (2,1,1), Sum of 5 (6 combinations): (1,1,3), (1,3,1), (3,1,1), (1,2,2), (2,1,2), (2,2,1), Sum of 6 (10 combinations): (1,2,3), (1,3,2), (2,1,3), (2,3,1), (3,1,2), (3,2,1), (1,1,4), (1,4,1), (4,1,1), (2,2,2) So the event space of A has 20 elements in total. The total event space of rolling the four-sided dice 3 times is 4 * 4 * 4 = 64. So Pr[A] = 20/64.
+  - Event space of B: If first dice is 1, then second dice can be 2, 3, or 4, while third dice can be any number, this is 3 * 4 = 12 different outcomes. If first dice is 2, then second dice can be 3, or 4, while third dice can be any number, this is 2 * 4 = 8 outcomes. If first dice is 3, then second dice can only be 4, while third dice can be any number, this is 1 * 4 outcomes. So there are 12 + 8 + 4 = 24 total outcomes. So Pr[B] = 24/64
+  - Event Space of both A and B happening = {(1,2,1), (1,2,2), (1,3,1), (1,2,3), (1,3,2), (2,3,1), (1,4,1)}. So Pr[A,B] = 7/64
+  - Pr[A] * Pr[B] = 20/64 * 24/64 and this is not equal to 7/64. Therefore, A and B are not independent.
+  
+- Part b
+  - Consider the event space of C. Maximum sum for rolling 3 4-sided dice is 12. Possible sums that are odd are: 3, 5, 7, 9, 11. Sum of 3 (1 combination): (1,1,1), Sum of 5 (6 combinations): (1,1,3), (1,3,1), (3,1,1), (1,2,2), (2,1,2), (2,2,1), Sum of 7 (12 combinations): (1,2,4), (1,4,2), (4,1,2), (4,2,1), (2,4,1), (2,1,4), (2,2,3), (2,3,2), (3,2,2), (1,3,3), (3,1,3), (3,3,1), Sum of 9 (10 combinations): (1,4,4), (4,1,4), (4,4,1), (2,3,4), (2,4,3), (4,2,3), (4,3,2), (3,4,2), (3,2,4), (3,3,3), Sum of 11 (3 combinations): (4,4,3), (4,3,4), (3,4,4). So event space of C has 23 elements in total. So Pr[C] = 32/64.
+  - Event space of D: Two dice have to be the same number whilst third dice has to be any other number. So 4 * 1 * 3 * (3!/2!) = 36 different outcomes. 4 different numbers for first dice, second dice same as first number, third dice any other number so 3 options. Multiplied by (3!/2!) to account for permutations of ordering. So Pr[D] = 36/64.
+  - Event space of both C and D happening {(1,1,3), (1,3,1), (3,1,1), (1,2,2), (2,1,2), (2,2,1), (2,2,3), (2,3,2), (3,2,2), (1,4,4), (4,1,4), (4,4,1), (4,4,3), (4,3,4), (3,4,4), (1,3,3), (3,1,3), (3,3,1)}. So Pr[C,D] = 18/64.
+  Pr[C] * Pr[D] = 32/64 * 36/64 = 18/64 and this is  equal to Pr[C,D] so C and D are independent.
+  
+- Part c
+  - From earlier parts, we know that Pr[A] = 20/64, and Pr[C] = 32/64 = 1/2.
+  - Event space of both A and C happening {(1,1,1), (1,1,3), (1,3,1), (3,1,1), (1,2,2), (2,1,2), (2,2,1)}, so Pr[A, C] = 7/64.
+  - Pr[A] * Pr[C] = 20/64 * 1/2 = 10/64 which is not equal to Pr[A,C] which is 7/64, thus, A and C are not independent.
+  
+- Part d
+  - From earlier parts, we know that Pr[B] = 24/64 and Pr[D] = 36/64.
+  - Event space of both B and D. If exactly 2 of the rolls are the same, and the second roll must be more than the first, then we know the first and third roll must be the same. If first roll is 1, then second roll can be 2, 3, or 4, this gives 3 outcomes. If first roll is 2, then second roll can be 3, or 4, this gives 2 outcomes. If first roll is 3, then second roll must be 4, resulting in 1 outcome. So total number of outcomes is 3 + 2 + 1 = 6. So Pr[B,D] = 6/64.
+  - Pr[B] * Pr[D] = 24/64 * 36/64 = 3/8 * 9/16 = 27/128 which is not equal to Pr[B,D] = 6/64 so B and D are not independent.
+
+## 2. Stock Portfolio <small>(8 points, 2 points each)</small>
+
+Consider two stocks. Stock A has a mean annual return of 0.05 and a standard deviation of 0.01. Stock B has a mean annual return of 0.10 and a standard deviation of 0.04. Past data suggests that the prices have a correlation of -0.65.
+You have \$1000 to invest in a portfolio composed of these two stocks. 
+
+a. Suppose you invest \$500 in stock A and \$500 in stock B. What will be the expected return and the standard deviation of your portfolio (in dollars)? 
+*Hint:* $SD(aX+bY) = \sqrt{Var(aX+bY)}= \sqrt{a^2Var(X)+2abCov(X,Y)+b^2Var(Y)}$ and $Cov(X,Y)=\sigma_X \sigma_Y \rho_{XY}$
+
+- As E[P]=E[aA+bB]=aE[A]+bE[B], then for the portfolio P, we have E[P] = 0.5 * 0.05 + 0.5 * 0.10 = 0.075, since the distribution of the portfolio is equal with \$500 into each stock. Therefore, the expected return is 0.075 * \$1000 = \$75.
+
+- Given the hint, we can use R to apply the formula $SD(aX+bY) = \sqrt{a^2Var(X)+2abCov(X,Y)+b^2Var(Y)}$ and $Cov(X,Y)=\sigma_X \sigma_Y \rho_{XY}$
+
+```{r}
+a = 0.5
+b = 0.5
+var_x = 0.01^2
+var_y = 0.04^2
+cov_xy = 0.01 * 0.04 * -0.65
+sd = sqrt((a^2)*var_x + 2*a*b*cov_xy + (b^2)*var_y )
+
+sd * 1000
+```
+
+- This tells us that the standard deviation of the portfolio, in dollars, is approximately \$17.18.
+
+
+b. Give an expression for the standard deviation for a portfolio investing $\$x$ in stock A and $\$1000-x$ in stock B. 
+
+- Investing $\$x$ in stock A and $\$1000-x$ in stock B means a would be x and b would be 1000-x. So $SD((x/1000)X+((1000-x)/1000)Y) = \sqrt{(x/1000)^2Var(X)+2(x/1000)((1000-x)/1000)Cov(X,Y)+((1000-x)/1000)^2Var(Y)}$ and $Cov(X,Y)=0.01 * 0.04 * -0.65$
+
+c. Find the value $x$ that minimizes this standard deviation. 
+
+```{r}
+portfolio_sd = function(x) {
+  sigma_A <- 0.01
+  sigma_B <- 0.04
+  rho_AB <- -0.65
+  cov_AB <- sigma_A * sigma_B * rho_AB
+  
+  var_A <- sigma_A^2
+  var_B <- sigma_B^2
+  
+  std <- sqrt((x/1000)^2 * var_A + ((1000-x)/1000)^2 * var_B + 2 * (x/1000) * ((1000-x)/1000) * cov_AB)
+  return(std)
+}
+
+result = optim(500, portfolio_sd)
+
+result$par
+```
+
+- From the above R code, we find the the optimal value for x would be $837.793 into portfolio A.
+
+d. What is the expected return and standard deviation (in dollars) for the portfolio split you chose in part c?
+
+```{r}
+a = result$par/1000
+b = 1 - a
+
+E_p = 1 *0.05 + b * 0.10
+E_p * 1000
+```
+
+- Using the sd we found earlier, we find estimated return, E[P] of the portfolio to be roughly $66.22
+
+- Given the hint, we can use R to apply the formula $SD(aX+bY) = \sqrt{a^2Var(X)+2abCov(X,Y)+b^2Var(Y)}$ and $Cov(X,Y)=\sigma_X \sigma_Y \rho_{XY}$
+
+```{r}
+a = result$par/1000
+b = 1 - a
+var_x = 0.01^2
+var_y = 0.04^2
+cov_xy = 0.01 * 0.04 * -0.65
+sd = sqrt((a^2)*var_x + 2*a*b*cov_xy + (b^2)*var_y )
+
+sd * 1000
+```
+
+- This tells us that the standard deviation of the portfolio, in dollars, is approximately \$6.45.
+
+
+## 3. Mousetrap: A Rube Goldberg Machine  <small>(5 points, 1 points each)</small>
+
+Consider the board game Mousetrap. When you trigger the ball needs to 
+
+1. roll down a ramp
+2. be carried up by a hammer
+3. roll  down another ramp
+4. go down a bathtub drain
+5. land on a lever which
+6. sends a diver into a basin which then
+7. causes the trap to descend.
+
+Suppose you can model the success of each component as independent Bernoulli random variables $X_1$ through $X_7$, where the probability of $X_i$ succeeding is $.94$ for each component. 
+
+a. What is the probability that the trap works correctly from beginning to end?
+```{r}
+
+success_prob = .94^7
+success_prob
+
+```
+
+- Thus we know that the probability for the trap to work correctly from beginning to end is roughly 0.648
+
+b. If you attempt the trap 15 times during a game, how many times do you expect it to work correctly from beginning to end?
+
+```{r}
+
+estimated_successes = success_prob * 15
+estimated_successes
+
+```
+
+- Given that we run the trap 15 times independently, each with a 0.6484776 probability of succeeding, the expected number of successful runs would be 0.6484776 * 15 which is roughly 9.73 times.
+
+c. Suppose you let the marble go: Let $Y$ be the number of components of the trap that work in a row. If one component fails, then you stop counting. Calculate the probability mass function of $Y$. *Hints: $Y$ can have values $0, 1, 2, 3, 4, 5, 6$ or $7$). This is like a Geometric except it does not have infinite support. How can you use this fact to determine the pmf? But what is a 'success' in this context?*
+
+- The PMF of Y at a certain k value where k is the number of working components before first failure, where k can be 0,1,2,3,4,5,6, or 7, is (0.94)^(k) * 0.06 for k < 7 and 0.94^7 for k = 7.
+
+```{r}
+pmf_Y <- c((0.94)^(0) * 0.06, (0.94)^(1) * 0.06, (0.94)^(2) * 0.06, (0.94)^(3) * 0.06, (0.94)^(4) * 0.06, (0.94)^(5) * 0.06, (0.94)^(6) * 0.06, (0.94)^(7))
+
+names_Y <- as.character(0:7)
+
+barplot(pmf_Y, names.arg = names_Y, col = "blue", xlab = "Number of Components Working in a Row (Y)", ylab = "Probability", main = "PMF of Y for Mousetrap Components")
+
+```
+
+- Check sum of pmf_Y is equal to 1 as it should be:
+
+```{r}
+sum(pmf_Y)
+```
+
+d. Calculate the expected value of $Y$ and its variance. 
+
+```{r}
+values_Y = 0:7
+expected = pmf_Y * values_Y
+
+expected_value = sum(expected)
+expected_Y_squared <- sum(values_Y^2 * pmf_Y)
+variance_Y <- expected_Y_squared - expected_value^2
+
+expected_value
+variance_Y
+
+
+```
+
+- From this we can tell that the expected value of Y is roughly 5.507 and the variance is roughly 5.504
+
+e. What is $P(Y = 6 | Y \geq 3)$?
+
+- $P(Y = 6 | Y \geq 3)$ = $P(Y = 6 ∩ Y \geq 3) \div P(Y \geq 3)$
+  - $P(Y \geq 3)$ = 0.94^3 * 0.06 + 0.94^4 * 0.06 + 0.94^5 * 0.06 + 0.94^6 * 0.06 + 0.94^7
+  - $P(Y = 6 ∩ Y \geq 3)$ = 0.94^6 * 0.06
+
+```{r}
+
+prob = (0.94^6 * 0.06)/(0.94^3 * 0.06 + 0.94^4 * 0.06 + 0.94^5 * 0.06 + 0.94^6 * 0.06 + 0.94^7)
+prob
+
+```
+
+- Thus the probability of $P(Y = 6 | Y \geq 3) = 0.04983504$
+
+## 4. Bayes Rule with forecasting  <small>(9 points, 3 points each)</small>
+
+Madison, Wisconsin gets about 115 days of precipitation per year (we'll just call it rain for the remainder of this problem, even though it is often snow). Suppose that when it rains, the forecast on Channel 3000 is correct 93% of the time and when it doesn't rain they are correct 87% of the time.
+
+- Let the event where the forecast calls for rain to be A. Let the event where it is raining outside be B.
+- P(A | B) = 0.93, P(not A | B) = 1 - 0.93 = 0.07, P(not A | not B) = 0.87, P(A | not B) = 1 - 0.87 = 0.13
+- P(B) = 115/365, P(A) = P(A∣B)×P(B)+P(A∣notB)×P(notB) = 0.93 * 115/365 + 0.13 * 250/365
+
+a. How many correctly forecasted days do you expect in a 365 day year?
+
+- Given that it rains 115 days a year and does not rain 250 days of the year, we wish to find the expectation of accurate forecast for raining days and non-raining days.
+  - For raining days, the expectation of accurate forecasts would be 0.93 * 115.
+  - For non-raining days, the expectation of accurate forecasts would be 0.87 * 250.
+```{r}
+correct_forecasts_days = 0.93 * 115 + 0.87 * 250
+correct_forecasts_days
+```
+- So the correctly forecasted days in a 365 day year would be 324.45.
+
+b. If the forecast calls for rain, what is the likelihood that it actually rains?
+
+- P(B | A) = (P(A | B) * P(B)) / P(A)
+```{r}
+p_A = 0.93 * 115/365 + 0.13 * 250/365
+p_B = 115/365
+p_AB = 0.93
+p_BA = p_AB * p_B / p_A
+
+p_BA
+```
+
+- Thus the probability is 0.7669416.
+
+c. Suppose that if the forecast was correct yesterday then it increases the likelihood of correctness today. Specifically, if the forecast was correct yesterday, then the probabilities from part a. increase to .98 and .92 respectively. If the forecast was correct on January 29th, what is the probability it was correct on January 28th? To answer this, let us take it as given that the forecast was **incorrect** on the 27th.
+
+- P(correct on 28th | correct on 29th) = (P(correct on 29th | correct on 28th) * P(correct on 28th)) / P(correct on 29th)
+  - P(correct on 29th | correct on 28th) = (0.98 * 115/365 + 0.92 * 250/365)
+  - P(correct on 28th) = (0.93 * 115/365 + 0.87 * 250/365)
+  - P(correct on 29th) = P(correct on 29th | correct on 28th) * P(correct on 28th) + P(correct on 29th | incorrect on 28th) * P(incorrect on 28th) = (0.98 * 115/365 + 0.92 * 250/365) * (0.93 * 115/365 + 0.87 * 250/365) + (0.93 * 115/365 + 0.87 * 250/365) * (0.07 * 115/365 + 0.13 * 250/365)
+  
+```{r}
+
+p_29given28 = (0.98 * 115/365 + 0.92 * 250/365)
+p_28 = (0.93 * 115/365 + 0.87 * 250/365)
+p_29 = p_29given28 * p_28 + (0.93 * 115/365 + 0.87 * 250/365) * (0.07 * 115/365 + 0.13 * 250/365)
+
+p_28given29 = p_29given28 * p_28 / p_29
+p_28given29
+```
+- Therefore, the P(correct on 28th | correct on 29th) = 0.8941944

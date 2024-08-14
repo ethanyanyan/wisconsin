@@ -1,0 +1,278 @@
+---
+title:  "STAT340 Discussion 6: Estimation and the Law of Large Numbers"
+output: html_document
+---
+
+## XKCD comic
+
+<center><a href="https://xkcd.com/2295/"><img src="https://imgs.xkcd.com/comics/garbage_math.png" id="comic"/></a></center>
+
+------------------------------------------------------------------------
+
+## Problem 1: more samples, better accuracy
+
+In lecture, we saw that when estimating something like the population mean (e.g., $p$ in our widgets example), the variance of our estimator should decrease at a rate like $1/n$. That is, doubling the sample size should cut the variance in half, tripling the sample size should decrease the variance by a factor of 3, and so on.
+
+Let's explore that a bit.
+
+### Part a: constructing an estimator
+
+Pick a distribution (e.g., normal, exponential, gamma, etc-- feel free to go to Wikipedia and pick a weird one!).
+Choose values for the parameters of this distribution, and compute the mean of the resulting distribution (refer to a probability textbook or Wikipedia if you don't know how to compute the mean in terms of parameters).
+
+Write a function `run_sample_mean_trial(n)` to perform the following experiment:
+
+1. Genererate `n` independent sample from your distribution of choice.
+2. Return the mean of that sample
+
+You may assume that `n` is a positive integer.
+
+```{r}
+run_sample_mean_trial <- function( n ) {
+
+  # Parameters for the Gamma distribution
+  k <- 2
+  theta <- 3
+  
+  # Generate n samples from the Gamma distribution
+  samples <- rgamma(n, shape = k, scale = theta)
+  
+  # Return the mean of the samples
+  mean(samples)
+  
+}
+```
+
+
+### Part b: estimating the variance of the sample mean
+
+Now, let's write code to estimate the variance of our estimator.
+Write a function `estimate_sample_mean_variance(n,M)` that estimates the variance of our sample mean by calling `run_sample_mean_trial` `M` times and returning the variance of the resulting vector of `M` sample means.
+
+__Note:__ we are generating `M` sample statistics, each of which is the sample mean of `n` draws from your distribution.
+SO in total, we're going to generate `n*M` random values in R.
+Test your code with small values of `n` and `M` to start so that you aren't waiting too long for our code to run.
+
+```{r}
+estimate_sample_mean_variance <- function( n, M ) {
+  
+  # Initialize a vector to store the means from each trial
+  sample_means <- numeric(M)
+  
+  # Run M trials, each with n samples
+  for (i in 1:M) {
+    sample_means[i] <- run_sample_mean_trial(n)
+  }
+  
+  # Calculate and return the variance of the sample means
+  var(sample_means)
+  
+}
+
+```
+
+### Part c: more samples, *how much* better estimate?
+
+Choose a few different values of the sample size `n` and use your function `estimate_sample_mean_variance` to estimate the variance of your estimator for each of those values of `n`.
+Then make a plot of this estimated variance in terms of `n`.
+In lecture, we said that variance should decrease like $1/n$ as the sample size $n$ increases. Does that look correct?
+
+If you're up for a challenge, try overlaying a plot of the function $f(t) = c/t$ for some $c > 0$, and try adjusting $c$ until your function approximately agrees with your (estimated) variance.
+
+```{r}
+
+library(ggplot2)
+
+# Sample sizes to test
+n_values <- c(10, 20, 50, 100, 200, 500, 1000)
+
+# Number of trials for estimating variance
+M <- 1000
+
+# Estimate variance for each sample size
+var_estimates <- sapply(n_values, function(n) {
+  estimate_sample_mean_variance(n, M)
+})
+
+# Plotting the estimated variances against sample sizes
+data <- data.frame(SampleSize = n_values, EstimatedVariance = var_estimates)
+ggplot(data, aes(x = SampleSize, y = EstimatedVariance)) +
+  geom_point() +
+  geom_line() +
+  scale_x_log10() + scale_y_log10() +
+  labs(title = "Estimated Variance vs. Sample Size",
+       x = "Sample Size (n)",
+       y = "Estimated Variance of Sample Mean") +
+  theme_minimal()
+
+# Overlaying f(t) = c/t
+# We choose c based on the theoretical relationship between variance and sample size
+# For a Gamma distribution with k = 2, theta = 3, variance = (k*theta^2), so we use this to guide our choice of c
+c_value <- 2 * 3^2  # Theoretical variance of the distribution
+
+# Adding the theoretical line to the plot
+data$TheoreticalVariance <- c_value / data$SampleSize
+
+ggplot(data, aes(x = SampleSize)) +
+  geom_line(aes(y = EstimatedVariance), color = "blue") +
+  geom_line(aes(y = TheoreticalVariance), color = "red", linetype = "dashed") +
+  scale_x_log10() + scale_y_log10() +
+  labs(title = "Estimated vs. Theoretical Variance",
+       x = "Sample Size (n)",
+       y = "Variance") +
+  theme_minimal() +
+  geom_point(aes(y = EstimatedVariance), color = "blue") +
+  annotate("text", x = 50, y = c_value / 50, label = "Theoretical Variance (c/n)", color = "red")
+
+```
+
+## Problem 2: the law of large numbers
+
+We've mentioned the law of large numbers several times now in lecture so far this semester (and it makes an appearance in the XKCD comic above-- do you see it?).
+
+Roughly speaking, the law of large numbers states that as our sample size gets large, the sample mean is very close to the population mean with high probability.
+More formally, for any $\epsilon > 0$,
+$$
+\lim_{n \rightarrow \infty} \Pr\left[ \left| \frac{1}{n} \sum_{i=1}^n X_i - \mu \right| > \epsilon \right] = 0.
+$$
+
+The interesting thing is that a law of large numbers-like behavior holds for many more quantities beyond the sample mean.
+We'll talk about this in more detail in lecture, but let's get a preview here.
+
+### Part a: warmup/refresher
+
+Let's recall that the "classic" law of large numbers says that if $X_1,X_2,\dots,X_n$ are an independent and identically distributed (i.i.d.) sample with mean $\mu$, then as the sample size $n$ gets large, $\bar{X} = n^{-1} \sum_{i=1}^n X_i$ gets very close to $\mu$ (with high probability).
+
+Here's code from a previous discussion to check this:
+
+```{r}
+# define running average function
+# can be specified as cumulative sum / index of element
+running_mean <- function(vec) {
+   cumsum(vec) / seq_along(vec)
+}
+
+# Generate a bunch of lambda=5.0 Poissons and compute running mean.
+poisdraws <- rpois(n=1000, lambda=5.0);
+runmean <- running_mean( poisdraws );
+
+# Plot the running mean
+plot( runmean );
+abline(h=5.0, col='red'); # Mean is 5.0
+```
+
+It should be pretty clear that as the sample size gets larger, the sample mean is closer (on average!) to the true mean, $\lambda = 5$.
+
+Adapt the above code to use Monte Carlo methods to estimate the probability that the sample mean of $n=250$ independent Poisson RVs with parameter $\lambda=5.0$ is within $0.25$ of the true population mean.
+Use your best judgment in choosing the number of Monte Carlo iterates.
+Don't forget to start with a small number of MC iterates and increase it only once you're confident your code works.
+
+__Reminder:__ the population mean of a Poisson with rate parameter $\lambda$ is $\lambda$).
+
+```{r}
+
+# Function to estimate the probability
+estimate_probability <- function(n, lambda, epsilon, M) {
+  within_epsilon_count <- 0
+  
+  for (i in 1:M) {
+    # Generate n samples from Poisson distribution
+    samples <- rpois(n, lambda)
+    
+    # Compute the sample mean
+    sample_mean <- mean(samples)
+    
+    # Check if the sample mean is within epsilon of lambda
+    if (abs(sample_mean - lambda) <= epsilon) {
+      within_epsilon_count <- within_epsilon_count + 1
+    }
+  }
+  
+  # Calculate the probability
+  probability <- within_epsilon_count / M
+  
+  return(probability)
+}
+
+# Parameters
+n <- 250
+lambda <- 5.0
+epsilon <- 0.25
+M <- 10000  # Number of Monte Carlo iterates
+
+# Estimate the probability
+probability_estimate <- estimate_probability(n, lambda, epsilon, M)
+
+probability_estimate
+
+
+```
+
+### Part b: implementing a weirder function
+
+As mentioned above, it turns out that a law of large numbers holds for much more general functions of the data beyond the sample mean.
+For example, as you'll see in this week's homework, the sample variance,
+$$
+\frac{1}{n} \sum_{i=1}^n \left( X_i - \bar{X} \right)^2,
+$$
+
+where $\bar{X}$ is the sample mean, also obeys a law of large numbers.
+
+__Note:__ you may be more used to seeing $n-1$ in the denominator in the definition above, and that's the correct thing to do; you'll explore that in your homework.
+We're using $n$ instead to keep things simple, and, as you'll see in your homework, once $n$ is big, the distinction doesn't much matter.
+
+Implement a function `running_var` by adapting the `running_mean` function above to compute a vector of variances, whose `m`-th entry is the sample variance of the first `m` entries of the input vector.
+
+__Hint:__ you may find it useful to use the fact that
+$$
+\frac{1}{n} \sum_{i=1}^n \left( X_i - \bar{X} \right)^2
+=
+\frac{1}{n} \sum_{i=1}^n X_i^2 - \bar{X}^2,
+$$
+
+where $\bar{X}$ is the sample mean.
+
+```{r}
+running_var <- function(vec) {
+  n <- length(vec)
+  running_mean <- cumsum(vec) / seq_along(vec)
+  running_mean_sq <- cumsum(vec^2) / seq_along(vec)
+  running_var <- running_mean_sq - running_mean^2
+  return(running_var)
+}
+
+pois_draws <- rpois(n=1000, lambda=5.0)
+run_var <- running_var(pois_draws)
+
+```
+
+### Part c: law of large numbers for variance?
+
+Pick a distribution (e.g., the normal, exponential, geometric, whatever you like!), and choose values for the parameters.
+Look up the variance of your random variable in terms of these parameters (you are free to use any probability textbook for this or just go to Wikipedia).
+
+Using `running_var` from Part (b), repeat the "law of large numbers" experiment that we did in Part (a) for the sample mean, this time to check that the sample variance is close to the true population variance once the sample size gets large.
+
+Include a horizontal line in your plot indicating the true population variance.
+
+
+```{r}
+
+# Generate samples
+samples <- rnorm(10000, mean = 0, sd = 1)
+
+# Compute running variance
+run_var <- running_var(samples)
+
+# Plot the running variance
+plot(run_var, type = 'l', xlab = "Sample Size", ylab = "Running Variance",
+     main = "Running Variance of a Standard Normal Distribution")
+abline(h = 1, col = 'red')
+
+```
+
+What do you see?
+
+- Convergence to True Variance: The plot of the running variance shows that as the number of samples increases, the running variance tends to stabilize around the true population variance, which is 1 for a standard Normal distribution. 
+- Fluctuations in Early Samples: For smaller sample sizes, you might notice more significant fluctuations in the running variance. This variability is expected due to the lower number of observations, making the estimate more susceptible to the randomness of each draw.
+

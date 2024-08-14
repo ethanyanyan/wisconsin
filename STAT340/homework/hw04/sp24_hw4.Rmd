@@ -1,0 +1,261 @@
+---
+title: "Homework 4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+## Problem 1. A Data Scientist Referees Ping Pong <small>(8pts total)</small>
+
+The game is Ping Pong. Players grab their paddles and hit the ping pong ball back and forth scoring points one at a time. The game continues until one player reaches 21 points, and at that point the game ends unless the point difference is less than 2. If it is less than 2 the game continues until one player wins by 2. 
+
+Suppose Athena and Bacchus play and Bacchus wins 21 to 15. Bacchus is super excited but Athena says that they should have a rematch, because she's sure that Bacchus is not better than her, it was just a fluke. 
+
+Time for a Data Scientist to settle this dispute. We must consider two hypotheses. The null hypothesis is that they are equally skilled - thus for each point scored the probability it goes to the ultimate winner is $0.50$. This is basically what Athena is claiming. The alternative is that Bacchus truly is more skilled, and the probability is greater than $0.50$ (the winner actually has more skill, and doesn't win purely by chance).
+
+Create a Monte Carlo simulation of a game. Use the point difference at game end as the test statistic. 
+
+- $H_{0}: p = 0.50$ , $H_{a}: p > 0.50$ , where p is the probability the point scored goes to the ultimate winner.
+
+a. (4 points) Create a function called `playPingPong` which simulates a single game of Ping Pong with equally skilled players. Remember the logic : points are given to players A or B with equal chance, and that continues until (1) the max score >= 21 and (2) the difference between scores >=2. Have the function return the point difference.
+
+```{r}
+
+playPingPong <- function() {
+  player_A <- 0
+  player_B <- 0
+  while (max(player_A, player_B) < 21 || abs(player_A-player_B) < 2) {
+    result <- rbinom(1,1,0.5)
+    if (result == 0) {
+      player_A <- player_A + 1
+    } else {
+      player_B <- player_B + 1
+    }
+  }
+  
+  return (abs(player_A-player_B))
+}
+
+```
+
+b. (2 points) Perform the Monte Carlo test; simulate 1000 games with equally skilled players. Look at the distribution of point differences, and compare the observed point difference to this distribution. What is the p-value of the observed point difference.
+
+```{r}
+
+MNC <- 1e5
+
+results <- replicate(MNC, playPingPong())
+# visualize distribution of point differences
+hist(results, 
+     main = "Distribution of Point Differences in Ping Pong Games", 
+     xlab = "Point Difference", 
+     ylab = "Frequency")
+
+observed_point_difference <- (21 - 15)
+
+# find p-value of the observed point difference
+abline(v = observed_point_difference, col = "red")
+greater_than_obs <- mean(results >= observed_point_difference)
+greater_than_obs
+
+```
+
+c. (2 points) How do you conclude? Is this one game sufficient evidence that Bacchus is the superior Ping Pong Player?
+
+- Given the results of the Monte Carlo simulation, we observe a p-value greater than the conventional significance level of 0.05 (specifically a p-value of 0.4 in my simulation). The p-value in this case would indicate the probability of obtaining a point difference as extreme as, or more extreme than, the observed difference (6 points in favor of Bacchus) under the null hypothesis that Athena and Bacchus are equally skilled. Since the p-value exceeds 0.05, we do not have sufficient statistical evidence to reject the null hypothesis. Therefore, the outcome of this one game does not provide enough evidence to conclusively state that Bacchus is the superior Ping Pong player over Athena. It suggests that the observed outcome could reasonably occur by chance in a situation where the players possess equal skill levels.
+
+
+
+## Problem 2: Quality or Quantity? <small>(6pts total)</small> 
+
+Marcio Ranchello (fictional) is a prolific architect who has won many accolades. For example, in the ranking of "Best 10 designs of 2023", 4 of the 10 designs are from Marcio Ranchello. The authors of the ranking report suggest that this is evidence of his greatness. However, you notice that among the 150 buildings considered in the rankings, 30 of them were designed by Marcio. Indeed, Marcio leads a big architecture firm that has been extremely active in designing new buildings.
+
+What do you think? Is the ranking evidence of the quality of his work, or a consequence of the quantity of his designs?
+
+Take the null hypothesis to be that any of the 150 considered buildings could be included in the top 10 with equal likelihood. How likely under this model would we see 4 (or more) of Ranchello's buildings in the top 10? What do you conclude? 
+
+Proceed by treating this as a formal hypothesis test. Define the null and alternative hypotheses, define your test statistic, produce a distribution of simulated test statistics from the null model and finish by calculating a p-value and providing your own interpretation.
+
+- Null Hypothesis $H_{0}$
+  - The ranking of Marcio Ranchello's buildings in the top 10 is due to chance alone, consistent with the proportion of his buildings in the total pool considered. So $H_{0}: p = 30/150$, where p is the probability of a Ranchello building being in the top 10.
+- Alternative Hypothesis $H_{a}$
+  - The ranking of Marcio Ranchello's buildings in the top 10 is not solely due to chance, indicating a deviation from what is expected based on the proportion of his buildings. So $H_{a}: p > 30/150$ if we hypothesize that the **quality** of Ranchello's work increases the likelihood of his buildings being in the top 10, beyond what would be expected by chance alone.
+- The test statistic is defined as the number of Marcio Ranchello's buildings that appear in the top 10 rankings.
+
+```{r}
+
+MNC <- 1e5
+award_buildings <- function() {
+  p <- 30/150
+  awarded <- rbinom(10, 1, p)
+  return(sum(awarded))
+}
+
+simulations <- replicate(MNC, award_buildings())
+hist(simulations, 
+     main = "Distribution of Number of Ranchello's buildings winning the award", 
+     xlab = "Number of Ranchello's buildings winning the award", 
+     ylab = "Frequency")
+
+observed_awarded_buildings <- 4
+
+# find p-value of the observed number of awarded buildings
+abline(v = observed_awarded_buildings-0.5, col = "red")
+greater_than_obs <- mean(simulations >= observed_awarded_buildings)
+greater_than_obs
+
+```
+
+- The analysis conducted through hypothesis testing and simulation yields a p-value greater than the conventional threshold of 0.05 (attained 0.127 on my simulation). This result indicates that there is insufficient statistical evidence to reject the null hypothesis, which tells us that the representation of Marcio Ranchello's buildings in the top 10 rankings could occur by random chance, given the proportion of his buildings in the total set considered (20%). Therefore, from a statistical standpoint, the observed success of Ranchello's buildings in the rankings—having 4 out of 10 spots—does not significantly deviate from what might be expected in a scenario where every building has an equal opportunity to be selected, based on quantity alone.
+
+## Problem 3: Permutation testing <small>(8pts)</small>
+
+Below are data arising from a (fictionalized) data source: the number of defects per day on an assembly line before and after installation of a new torque converter (this is a totally fictional "part" of an assembly line--just treat these as "control" and "treatment" groups, respectively).
+
+```{r}
+before = c(4,5,6,3,6,3,4,5,5,3,4,6,4,6,3,4,2,2,0,7,5,8,4,5,1,4,4,8,2,3)
+after  = c(3,2,4,3,7,5,5,2,2,4,5,2,2,6,1,5,6,3,2,3,7,3,4,5,4,2,2,6,7,8)
+```
+
+a) (4 points) Use a permutation test to assess the claim that installation of the new part changed the prevalence of defects. That is, test the null hypothesis that the distribution of defects is the same before and after installation of the new part. Produce a p-value and interpret the results of your test in context.
+
+- Null Hypothesis $H_{0}$
+  - The distribution of defects is the same before and after installation of the new part. So $H_{0}: F_{before} = F_{after}$, where where $F_{before}$ is the distribution of the number of defects per day before installing new torque converter and $F_{after}$ is the distribution of the number of defects per day after installing new torque converter.
+- Alternative Hypothesis $H_{a}$
+  - $H_{a}: F_{before} \neq F_{after}$
+- The test statistic is defined as the difference in means
+
+```{r}
+
+# From lecture notes
+permute_and_compute <- function( ctrl_data, trmt_data ) {
+  # ctrl_data and trmt_data are vectors storing our control and treatment data
+  # We are going to pretend that these two data sets came from the same
+  # distribution. That means
+  # 1) pooling them and randomly reassigning them
+  #     to the treatment and control groups.
+  # and then
+  # 2) Computing our test statistic (the difference in means) on that
+  #     new "version" of the data.
+  
+  # Pool the data
+  pooled_data <- c( ctrl_data, trmt_data );
+  # Randomly shuffle the data and assign it to control and treatment groups.
+  n_ctrl <- length( ctrl_data );
+  n_trmt <- length( trmt_data );
+  n_total <- n_ctrl + n_trmt;
+  # Now, let's shuffle the data, and assign the first n_ctrl elements
+  # to the control group, and the rest to the treatment group.
+  # We're going to do this using the sample() function.
+  # To randomly shuffle the data, it's enough to sample from the
+  # original data (i.e., the pooled data) WITHOUT replacement.
+  # The result is that shuffled_data contains the same elements as
+  # pooled_data, just in a (random) different order.
+  shuffled_data <- sample( pooled_data, size=n_total, replace=FALSE );
+  # Now, the first n_ctrl of these data points are our new control group
+  # and the remaining elements are assigned to our treatment group.
+  shuffled_ctrl <- shuffled_data[1:n_ctrl];
+  shuffled_trmt <- shuffled_data[(n_ctrl+1):n_total];
+  # Okay, last step: compute the difference in means of our two samples.
+  return( mean(shuffled_trmt)-mean(shuffled_ctrl) );
+}
+
+```
+
+```{r}
+
+NMC <- 1e5; 
+test_statistics <- rep( 0, NMC );
+
+for(i in 1:NMC ) {
+  test_statistics[i] <- permute_and_compute( before, after );
+}
+
+hist( test_statistics )
+abline( v=mean(after)-mean(before), lw=3, col='red' )
+abline( v=-(mean(after)-mean(before)), lw=3, col='red' )
+
+observed_tstat <- mean(after)-mean(before)
+p_value <- mean(test_statistics <= observed_tstat | test_statistics >= -observed_tstat)
+p_value
+
+```
+
+- With a p-value of approximately 0.736, the results suggest that the observed difference in defect rates before and after the installation of the new part is not statistically significant at conventional significance levels (0.05). This high p-value indicates that the difference in means we observed could reasonably occur by chance if the true effect of the new part on defect rates was 0, i.e., if the distribution of defects before and after the installation were indeed the same.
+
+- Thus, there is insufficient evidence to reject the null hypothesis that the distribution of defects is the same before and after the installation of the new part. Based on this permutation test, we cannot conclude that the installation of the new part had a significant impact on the prevalence of defects on the assembly line. This analysis suggests that any observed changes in defect rates might just as likely be attributed to random variation rather than a direct effect of the new torque converter installation.
+
+
+b) (4 points) Explain, briefly, what you did above and why. Imagine that you are trying to explain to someone who isn't well versed in statistics what exactly you are doing in a permutation test. Explain your conclusion based on your test above. Three to five sentences should be plenty, but you are free to write as much or as little as you think is necessary to clearly explain your findings.
+
+- In a permutation test, like the one conducted above, we're essentially shuffling the data between two groups (before and after the installation of a new part in this case) multiple times and recalculating the difference in their averages each time. This shuffling mimics the idea of "what if the distinction between 'before' and 'after' didn't really matter" By doing this many, many times, we create a range of possible outcomes that could happen just by chance.
+- If the real difference is common within this range, it suggests that the change we saw could easily have happened by luck, and we don't have strong evidence that the new part had any effect. If the real difference is rare or extreme within this range, it suggests the opposite—that the new part likely did make a difference.
+- Given our p-value of 0.73575, it's quite high, indicating that the observed difference in defects before and after installing the new part is well within what we might expect by random chance. This means we don't have evidence to suggest the new part had a significant effect on defect rates. 
+
+
+## Problem 4: Memes <small>(8pts)</small>
+
+The following question comes from Karl Rohe, who developed the very first version of this class. This question has been reproduced in nearly the exact original (very amusing) wording.
+
+> **Memes, part 1** (Please forgive me. I drank too much coffee before writing this question.)
+> 
+> In class thus far, there have been 416 comments posted in the bbcollaborate chat during class. An expert panel has judged 47 of these comments to be memes. The big-bad-deans say that they are concerned "if there is evidence that more than 10% of comments are memes." So, this looks like bad news, 47/416>10%.
+> 
+> Karl pleads with the deans: "Please, oh please, you big-bad-deans... Memeing is totally random." (I don't actually know what this notion of "random" means, but please just run with it for this question.) Then, along comes you, a trusty and dedicated 340 student. You say that "because we have only observed 416 comments, we don't really know what the 'true proportion' of memes."
+> 
+> 4a: What would be a good distribution for the number of memes?
+> 
+> 4b: Using your distribution from 4a, test the null hypothesis that the 'true proportion' is actually 10%. It's all up to you now... report the p-value.
+
+Hints:
+
+- For 4a, there should be a (hopefully) fairly intuitive choice of random variable that makes sense here. Look at your list of random variables and ask yourself which of these makes the most sense.
+- For 4b, you can use the built-in function in R to simulate observations according to your null. Remember that you **always simulate *assuming* the null hypothesis**. Make sure your choice of the necessary parameter(s) reflects this assumption.
+
+> 4a
+
+- A good distribution would be the binomial distribution. This is because we observe that:
+  - Binary Outcome: Each comment can either be a meme or not, which represents the two possible outcomes in each trial.
+  - Independent Trials: We assume each comment's classification as a meme or not is independent of the others.
+  - Fixed Number of Trials: There are 416 comments posted, which represents a fixed number of trials.
+  - Constant Probability of Success: While the actual proportion of memes is what we're trying to infer, the assumption here is that each comment has the same probability of being a meme.
+
+>4b
+
+- Null Hypothesis $H_{0}$
+  - That the 'true proportion' is actually 10%. So $H_{0}: p = 0.1$, where p is the probability of a comment being a meme comment.
+- Alternative Hypothesis $H_{a}$
+  - The occurence of meme comments are not solely due to chance, indicating a deviation from what is expected based on the proportion of the total number of comments. So $H_{a}: p > 0.1$. This one-sided alternative hypothesis tests for an excess of memes beyond what the deans consider acceptable.
+- The test statistic is defined as the number of meme comments that are present in the class.
+
+```{r}
+
+MNC <- 1e5
+meme_comments <- function() {
+  p <- 0.1
+  # Getting a 1 means it is a meme comment
+  meme <- rbinom(416, 1, p)
+  return(sum(meme))
+}
+
+simulations <- replicate(MNC, meme_comments())
+hist(simulations, 
+     main = "Distribution of Number of meme comments per 416 comments", 
+     xlab = "Number of meme comments", 
+     ylab = "Frequency")
+
+observed_number_meme_comments <- 47
+
+# find p-value of the observed number of awarded buildings
+abline(v = observed_number_meme_comments-0.5, col = "red")
+greater_than_obs <- mean(simulations >= observed_number_meme_comments)
+greater_than_obs
+
+```
+
+- A p-value of 0.209 (as observed in my simulation run) suggests that there is a 20.9% chance of observing 47 or more memes purely by chance if the true proportion of memes is indeed 10%. Since this p-value is not below the commonly used significance threshold (0.05), we do not have sufficient evidence to reject the null hypothesis. Therefore, based on this statistical test alone, we cannot conclude that the proportion of memes is significantly greater than 10%. This result suggests that the observed frequency of memes could reasonably occur under the null hypothesis of random meme posting with a true proportion of 10%.
+
+- In other words, the evidence is not strong enough to support the claim that more than 10% of comments are memes, at least not at the conventional levels of statistical significance. This might provide some reassurance to the concerned deans, as the data does not conclusively show that the proportion of memes exceeds their threshold of concern.

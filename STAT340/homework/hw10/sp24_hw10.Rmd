@@ -1,0 +1,420 @@
+---
+title: "Homework 6"
+author: "Ethan Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Problem 1. Warm up: Log-Odds, Odds and Probability <small>5 points; 1 point each</small>
+
+a. Convert a log-odds of 1.75 to probability.
+
+***
+
+```{r}
+
+odds <- exp(1.75)
+prob1 <- odds / (1 + odds)
+prob1
+
+```
+
+***
+
+b. Convert probability of 0.85 to odds.
+
+***
+
+```{r}
+
+odds1 <- 0.85 / (1 - 0.85)
+odds1
+
+```
+
+***
+
+c. Event A has a probability of 0.7 and the odds ratio of A to B is 1.45. Calculate the probability of event B.
+
+***
+
+```{r}
+
+odds_a <- 0.7 / (1 - 0.7)
+odds_b <- odds_a / 1.45
+prob_b <- odds_b / (1 + odds_b)
+prob_b
+
+```
+
+***
+
+d. You roll a single 6 sided die. What are the odds you get a number divisible by 3?
+
+***
+
+```{r}
+
+prob_get_num_divisible_by_3 <- 2/6
+odds2 <- prob_get_num_divisible_by_3 / (1 - prob_get_num_divisible_by_3)
+odds2
+
+```
+
+***
+
+e. The odds ratio comparing event A to B is 9 and the risk ratio is 3. What is $Pr(A)$? *Hint: let $Pr(A)=a$ and $Pr(B)=b$, and write out the odds ratio and risk ratio as equations. 
+
+***
+
+- Let $Pr(A)=a$ and $Pr(B)=b$, then odds_a = a/1-a and odds_b = b/1-b. Given the odds ratio, odds_a/odds_b = 9 so (a(1-b)) / (b(1-a)) = 9. Given the risk ratio, a/b = 3. So, a = 3b. Substituting this into the odds ratio equation, we get (3b(1-b)) / (b(1-3b)) = 9, simplifying this we get 3b-3b^2 = 9b-27b^2, so 24b = 6 and we get b = 0.25 and a = 0.75.
+
+***
+
+
+
+## Problem 2. Interpreting logistic regression <small>6pts; 2 pts each</small>
+
+Suppose we collect data for a group of students in a statistics class with independent variables $X_{1}=\text{hours studied}$, $X_{2}=\text{GPA}$, and binary response variable
+$$
+Y= \begin{cases} 1 &\mbox{ if student received an A} \\
+  0 &\mbox{ otherwise. }
+  \end{cases}
+$$
+Suppose that we fit a logistic regression model to the data, predicting $Y$ from $X_1$ and $X_2$ (and an intercept term) and produce estimated coefficients $\hat{\beta}_{0}=-6, \hat{\beta}_{1}=0.05, \hat{\beta}_{2}=1$.
+
+### Part a) Logistic regression and probability
+
+According to our fitted model, what is the probability that a student receives an A if they study for $40$ hours and have a GPA of $3.5$?
+
+```{r}
+
+z <- -6 + 0.05*40 + 1*3.5
+prob_get_a <- 1 / (1 + exp(-z))
+prob_get_a
+
+```
+
+### Part b) Interpreting coefficients
+According to our fitted model, an additional hour spent studying is associated with *how much* of an increase in the log odds of receiving an A?
+
+- Additional hour spend would be 0.05 increase in log-odds of receiving an A
+
+```{r}
+
+z_40 <- -6 + 0.05 * 40 + 1 * 3.5
+z_41 <- -6 + 0.05 * 41 + 1 * 3.5
+z_40
+z_41
+
+P_40 <- 1 / (1 + exp(-z_40))
+P_41 <- 1 / (1 + exp(-z_41))
+
+P_40
+P_41
+P_difference <- P_41 - P_40
+P_difference
+
+```
+
+### Part c) "Inverting" logistic regression probabilities
+According to our fitted model, how many hours would the student in Part (a) need to study to have a $50\%$ chance of getting an A in the class?
+That is, keeping GPA fixed at $3.5$, how many hours of study are needed so that the probability of an A is $50\%$?
+If you aren't up for the math, feel free to find an approximate solution via guess-and-check in R.
+
+***
+
+- So we know that z = -6 + 0.05\*num_hours + 1\*3.5. And prob_get_a = 1 / (1 + exp(-z)), so, z = -log((1/prob_get_a)-1).
+- Given we want to find num_hours when prob_get_a=0.5, we now have -6 + 0.05\*num_hours + 1\*3.5 = -log((1/0.5)-1).
+- Simplifying that equation, we get num_hours = (-log((1/0.5)-1) - 3.5 + 6)/0.05
+
+***
+
+```{r}
+
+num_hours <- (-log((1/0.5)-1) - 3.5 + 6)/0.05
+num_hours
+
+```
+
+- 50 hours of studying are needed.
+
+
+## Problem 3. Palmer Penguins Part I  <small>9pts; 3 pts each</small>
+
+The Palmer Penguin dataset (https://allisonhorst.github.io/palmerpenguins/) consists of 344 observations of penguins belonging to 3 penguin species across the islands in the Palmer Archipeligo in Antarctica. We will build a logistic model attempting to classify the penguins based on physical characteristics. For each penguin we've recorded: 
+
+* `species` - the species, either "Gentoo", "Adelie" or "Chinstrap"
+* `island` - which of three islands the Penguin was observed (Biscoe, Dream or Torgersen)
+* `bill_length_mm` - the length of the bill in mm
+* `bill_depth_mm` - the depth of the bill (vertical thickness of the closed bill)
+* `filler_length_mm` - length of their cute flippers
+* `body_mass_g` - the body mass in grams
+* `sex` - female, male or NA (unknown)
+* `year` - The year of the observation: 2007, 2008 or 2009
+
+First you need to download the library. Run this chunk of code once.
+```{r, eval=FALSE, echo=FALSE}
+#Run this code once to install the library
+install.packages("palmerpenguins")
+```
+
+Then load the library and the penguin dataset. Note: Your RMD won't knit until you run the above chunk.
+```{r}
+library(palmerpenguins)
+```
+
+### a) Adelie penguins based on island
+
+We are going to try to classify penguins as **Adelie** or **not Adelie**. So create a new variable called `Adelie` which will be 1 or 0 based on whether the penguin species is Adelie
+
+```{r}
+
+data("penguins")
+penguins$Adelie <- ifelse(penguins$species == "Adelie", 1, 0)
+head(penguins)
+
+```
+
+Perform some analysis looking at each of the 3 islands - create a 2 way table between `island` and the `Adelie` variable. Look at the proportions conditioned on island. What proportion of observations on each island were Adelie?
+
+```{r}
+
+island_adelie_table <- table(penguins$island, penguins$Adelie)
+island_adelie_table
+
+df_island_adelie <- as.data.frame.matrix(island_adelie_table)
+df_island_adelie$Proportion_Adelie <- df_island_adelie$`1` / (df_island_adelie$`0` + df_island_adelie$`1`)
+df_island_adelie
+
+```
+
+***
+
+- Biscoe: There are 44 Adelie penguins and 124 non-Adelie penguins. The proportion of Adelie penguins on Biscoe is approximately 26.19%.
+- Dream: There are 56 Adelie penguins and 68 non-Adelie penguins. The proportion of Adelie penguins on Dream is approximately 45.16%.
+- Torgersen: All 52 observed penguins on Torgersen are Adelie, giving a proportion of 100%.
+
+***
+
+### b) Adelie Penguins on Dream
+
+Find the (i) probability, (ii) odds and (iii) log-odds that a randomly selected penguin from Dream is an Adelie penguin?
+
+```{r}
+
+dream_adelie <- df_island_adelie["Dream", "1"]
+dream_not_adelie <- df_island_adelie["Dream", "0"]
+dream_total <- dream_adelie + dream_not_adelie
+
+prob_adelie <- dream_adelie / dream_total
+prob_adelie
+
+odds_adelie <- prob_adelie / (1 - prob_adelie)
+odds_adelie
+
+log_odds_adelie <- log(odds_adelie)
+log_odds_adelie
+
+```
+
+***
+
+- The probability, odds and log-odds that a randomly selected penguin from Dream is an Adelie penguin is 0.4516129, 0.8235294, and -0.194156 respectively.
+
+***
+
+### c) An island-based classifier
+
+Now fit a logistic model predicting whether a penguin is Adelie based on island.
+Interpret the intercept and the coefficient of the `islandDream` variable. Use this model to predict the probability that a penguin from Dream is Adelie.
+
+```{r}
+
+adelie_model <- glm(species == "Adelie" ~ island, data = penguins, family = binomial)
+summary(adelie_model)
+
+```
+
+***
+
+- Interpreting the intercept: The intercept represents the log-odds of a penguin being of the Adelie species when the penguin is observed on the Biscoe island, assuming no other variables in the model. The probability that a randomly selected penguin from Biscoe is an Adelie is about:
+
+```{r}
+
+odds_biscoe <- exp(coef(adelie_model)["(Intercept)"])
+prob_biscoe <- unname(odds_biscoe / (1 + odds_biscoe))
+prob_biscoe
+
+```
+
+- Interpreting the Coefficient of the `islandDream` variable: This coefficient of 0.8419 represents the change in log-odds of being an Adelie penguin when comparing penguins on Dream island to Biscoe island.
+
+```{r}
+
+odds_ratio <- unname(exp(coef(adelie_model)["islandDream"]))
+odds_ratio
+
+```
+
+- This indicates that the odds of a penguin being an Adelie are about 2.32 times higher if the penguin is on Dream compared to Biscoe.
+
+- Now, to predict the probability that a penguin from Dream is Adelie:
+
+```{r}
+
+log_odds_dream <- coef(adelie_model)["(Intercept)"] + 1*coef(adelie_model)["islandDream"]
+odds_dream <- exp(log_odds_dream)
+probability_dream <- unname(odds_dream / (1 + odds_dream))
+probability_dream
+
+```
+
+***
+
+
+
+## Problem 4. Penguins Part II <small>10pts; 2 pts each</small>
+
+In this problem we will work once again with the Palmer Penguin dataset. We will work with a subset by taking out all missing values. After you have installed the package and loaded the library, uncomment the line below.
+```{r}
+
+penguins.complete <- penguins[complete.cases(penguins),]
+
+```
+
+### a) Predicting Palmer Penguins with quantitative Predictors
+
+Now use the two bill measurements (`bill_length_mm` and `bill_depth_mm` as predictors in a new logistic model. Suppose a penguin with a bill length of 53.1 and a bill depth of 22.7 is observed. What is the model's probability that the penguin is an Adelie penguin?
+
+```{r}
+
+adelie_bill_model <- glm(species == "Adelie" ~ bill_length_mm + bill_depth_mm, 
+                         data = penguins.complete, family = binomial)
+summary(adelie_bill_model)
+
+new_penguin <- data.frame(bill_length_mm = 53.1, bill_depth_mm = 22.7)
+predicted_prob <- unname(predict(adelie_bill_model, newdata = new_penguin, type = "response"))
+predicted_prob
+
+```
+
+***
+
+- The probability that a penguin with a bill length of 53.1 mm and a bill depth of 22.7 mm is an Adelie is approximately 0.0789.
+
+***
+
+### b) Interpreting coefficients
+
+Are longer bills associated with an increased or decreased likelihood that a penguin is an Adelie penguin?
+
+***
+
+- The coefficient for bill_length_mm in the logistic regression model is −2.2099. This indicates that for every millimeter increase in bill length, the log-odds of the penguin being an Adelie decrease by 2.2099 units, assuming all other factors remain constant. This translates to a decreased likelihood of the penguin being an Adelie as the bill length increases. Hence, longer bills are significantly associated with a lower probability of a penguin being classified as an Adelie.
+
+***
+
+### c) A full classifier
+
+Fit a logistic model to predict whether a penguin is a **Chinstrap** penguin using all four of the biological measurements (`bill_length_mm`, `bill_depth_mm`, `flipper_length_mm`, and `body_mass_g`). 
+
+```{r}
+
+chinstrap_model <- glm(species == "Chinstrap" ~ bill_length_mm + bill_depth_mm + 
+                       flipper_length_mm + body_mass_g, 
+                       data = penguins.complete, family = binomial())
+
+summary(chinstrap_model)
+
+```
+
+Which of the predictors are significant?
+
+***
+
+- Intercept: The intercept has a p-value of 0.04656, which is significant at the 0.05 level. This value indicates the log-odds of a penguin being a Chinstrap when all predictors are zero (which isn't practically possible).
+- Bill Length (bill_length_mm): This predictor is highly significant, with a p-value of 0.00113. An increase in bill length increases the likelihood of a penguin being a Chinstrap significantly.
+- Body Mass (body_mass_g): This predictor is highly significant, with a p-value of 0.00129. An increase in body mass is associated with a decrease in the likelihood of being a Chinstrap.
+
+***
+
+
+### d) Assessing the model
+Suppose you will predict that a penguin is a Chinstrap if the estimated $\hat{y}=\sigma(\hat{z})>0.5$. When predicting using this threshold, what is the type 1 error rate of your predictor on the dataset? What is power of the predictor on the dataset? 
+*Hint: you will want to compare the predicted $\hat{y}$ values to the actual $y$ values. The `table` command can produce a 2x2 confusion matrix to help you answer this question.*
+
+
+```{r}
+
+penguins.complete$predicted_prob <- predict(chinstrap_model, type = "response")
+penguins.complete$predicted_chinstrap <- ifelse(penguins.complete$predicted_prob > 0.5, 1, 0)
+penguins.complete$actual_chinstrap <- ifelse(penguins.complete$species == "Chinstrap", 1, 0)
+conf_matrix <- table(Predicted = penguins.complete$predicted_chinstrap, Actual = penguins.complete$actual_chinstrap)
+conf_matrix
+
+type_1_error <- conf_matrix[2, 1] / sum(conf_matrix[, 1])
+type_1_error
+power <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+power
+
+```
+
+***
+
+The type 1 error rate is approx. 0.00377 and the power is approx. 0.956.
+
+***
+
+
+### e) Adjusting the Type 1 error rate
+
+Now modify your threshold from 0.5 to some other threshold with the goal of achieving the highest power possible while keeping the type 1 error rate  below 0.05. What threshold would you use? What is the type 1 error rate and power of this new classifier?
+
+```{r}
+
+calculate_metrics <- function(threshold) {
+  penguins.complete$predicted_chinstrap <- ifelse(penguins.complete$predicted_prob > threshold, 1, 0)
+  conf_matrix <- table(Predicted = factor(penguins.complete$predicted_chinstrap, levels = c(0, 1)), Actual = factor(penguins.complete$actual_chinstrap, levels = c(0, 1)))
+
+  type_1_error <- conf_matrix[2, 1] / sum(conf_matrix[, 1])  # FP / (TN + FP)
+  power <- conf_matrix[2, 2] / sum(conf_matrix[, 2])        # TP / (TP + FN)
+  
+  return(list(type_1_error = type_1_error, power = power))
+}
+
+best_threshold <- NULL
+best_power <- 0
+best_type_1_error <- 1
+
+thresholds <- seq(0, 1, by = 0.001)
+
+for (thresh in thresholds) {
+  metrics <- calculate_metrics(thresh)
+  
+  if (metrics$type_1_error < 0.05) {
+    if (metrics$power > best_power) {
+      best_power <- metrics$power
+      best_type_1_error <- metrics$type_1_error
+      best_threshold <- thresh
+    }
+  }
+}
+
+cat("Best Threshold:", best_threshold, "\n")
+cat("Type 1 Error Rate:", best_type_1_error, "\n")
+cat("Best Power:", best_power, "\n")
+
+```
+
+***
+
+- Best Threshold: 0.03
+- Type 1 Error Rate: 0.0490566
+- Best Power: 1
+
+***

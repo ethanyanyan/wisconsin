@@ -1,0 +1,177 @@
+---
+title: "Homework 7"
+author: "Ethan Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## Problem 1: The infamous mule kick data <small>20pts</small>
+
+The file `mule_kicks.csv`, available for download (here)[https://kdlevin-uwstat.github.io/STAT340-Fall2021/hw/03/mule_kicks.csv], contains a simplified version of a very famous data set. The data consists of the number of soldiers killed by being kicked by mules or horses each year in a number of different companies in the Prussian army near the end of the 19th century.
+
+This may seem at first to be a very silly thing to collect data about, but it is a very interesting thing to look at if you are interested in rare events. Deaths by horse kick were rare events that occurred independently of one another, and thus it is precisely the kind of process that we might expect to obey a Poisson distribution.
+
+Download the data and read it into R by running
+
+```{r}
+download.file('https://kdlevin-uwstat.github.io/STAT340-Fall2021/hw/03/mule_kicks.csv', destfile='mule_kicks.csv')
+mule_kicks = read.csv('mule_kicks.csv', header=TRUE)
+
+head(mule_kicks)
+```
+
+`mule_kicks` contains a single column, called `deaths`.
+Each entry is the number of soldiers killed in one corps of the Prussian army in one year.
+There are 14 corps in the data set, studied over 20 years, for a total of 280 death counts.
+
+
+### Part a: estimating the Poisson rate <small>5pts</small>
+
+Assuming that the mule kicks data follows a Poisson distribution, produce a point estimate for the rate parameter $\lambda$.
+There are no strictly right or wrong answers, here, though there are certainly better or worse ones.
+
+```{r}
+#TODO: estimate the rate parameter.
+
+lambdahat <- mean(mule_kicks$deaths) # TODO: write code store your estimate in lambdahat.
+lambdahat
+```
+
+
+### Part b: constructing a CI <small>10pts</small>
+
+Using everything you know (Monte Carlo, CLT, etc.), construct a confidence interval for the rate parameter $\lambda$.
+Explain in reasonable detail what you are doing and why you are constructing the confidence interval in this way (a few sentences is fine!).
+
+```{r}
+
+mc_resampling <- function (reps, sample_size, lambda) {
+  estimators <- numeric(reps)
+  for (i in 1:reps){
+    sample <- rpois(sample_size,lambda) 
+    estimators[i] <- mean(sample)
+  }
+  return (estimators)
+}
+
+# Simulate the sampling distribution of the estimator
+simulated_means <- mc_resampling(1e4, length(mule_kicks$deaths), lambdahat)
+
+# Construct a 95% confidence interval from the simulated sample means
+alpha <- 0.05
+lower_bound <- quantile(simulated_means, alpha / 2)
+upper_bound <- quantile(simulated_means, 1 - (alpha / 2))
+
+# Display the histogram of simulated_means with the CI bounds
+hist(simulated_means, main="Distribution of Simulated Sample Means with CI", xlab="Lambda Hat")
+abline(v = c(lower_bound, upper_bound), col = "red", lwd = 2)
+
+# Print the CI
+cat("95% Confidence Interval for Lambda:", lower_bound, upper_bound, "\n")
+
+#TODO: code goes here.
+
+```
+
+***
+
+- In constructing the confidence interval (CI) for the rate parameter λ of a Poisson distribution, I first estimated λ using the sample mean of the observed data, since the mean of a Poisson distribution is an unbiased estimator for λ. Recognizing that the distribution of sample means approximates a normal distribution due to the Central Limit Theorem (CLT), even for non-normal population distributions like Poisson, I applied a Monte Carlo simulation. This simulation involved resampling: repeatedly drawing samples of the same size as the original data from a Poisson distribution parameterized by the estimated λ, and calculating the mean for each sample. These means approximate the sampling distribution of the estimator. From this distribution, I derived a 95% CI by identifying the 2.5th and 97.5th percentiles. This method allows us to estimate the range within which the true rate parameter λ is likely to lie with 95% confidence, based on the simulated distribution which adheres to the CLT, providing a practical application of theoretical statistical principles.
+
+***
+
+
+### Part c: assessing a model <small>5pts</small>
+
+Here's a slightly more open-ended question.
+We *assumed* that the data followed a Poisson distribution.
+This may or may not be a reasonable assumption.
+Use any and all tools that you know to assess (either with code or simply in words) how reasonable or unreasonable this assumption is.
+
+Once again, there are no strictly right or wrong answers here.
+Explain and defend your decisions and thought processes in a reasonable way and you will receive full credit.
+
+***
+
+```{r}
+
+library(ggplot2)
+
+obs_freq <- table(mule_kicks$deaths)
+
+lambdahat <- mean(mule_kicks$deaths)
+deaths_seq <- 0:max(as.integer(names(obs_freq))) 
+expected_freq <- dpois(deaths_seq, lambdahat) * length(mule_kicks$deaths)
+
+# Plot observed frequencies
+barplot(obs_freq, names.arg = names(obs_freq), main = "Observed vs. Expected Frequencies", xlab = "Deaths", ylab = "Frequency")
+
+# Overlay expected frequencies
+lines(deaths_seq, expected_freq, col = "red", type = "o")
+
+```
+
+- Observing that the line representing expected frequencies closely follows the pattern of observed data suggests that the assumption of a Poisson distribution for the data is reasonable. This alignment indicates that the distribution of the number of soldiers killed by mule kicks in the Prussian army behaves consistently with the characteristics of a Poisson process, which models the occurrence of independent rare events within a fixed interval or space.
+
+***
+
+
+
+## Problem 2: Closing the loop <small>10 pts</small>
+
+In our discussion of the Universal Widgets of Madison company from lecture, we said that we were interested in two questions:
+
+1. Estimating the probability $p$ that a widget is functional.
+2. How many widgets should be in a batch to ensure that (with high probability) a batch ships with at least $5$ functional widgets in it?
+
+We discussed question (1) at length in lecture.
+What about question (2)?
+Our client wants to know how many widgets should ship in each batch so as to ensure that the probability there are at least $5$ functional widgets in a batch is at least $0.99$.
+
+Now, suppose that we have observed data and estimated $p$ to be $0.82$.
+
+Use everything you know so far in this course to give a recommendation to the client.
+Be sure to explain clearly what you are doing and why.
+If there are any steps, assumptions, etc., that you are not 100% pleased with, feel free to point them out.
+
+__Note:__ there are at least two "obvious" ways to solve this problem. One is based on using Monte Carlo (i.e., assume $p=0.82$ is the truth, and try generating batches of different sizes, etc.).
+The other uses direct computation of probabilities, using basic facts about Binomial RVs.
+Neither of these is necessarily better than the other, and you do not need to use both approaches to receive full credit.
+Indeed, you are free to try doing something else entirely, if you wish.
+Just explain clearly what you are doing and why!
+
+```{r}
+
+# Assume p=0.82 is truth
+phat <- 0.82
+desired_prob <- 0.99
+min_functional <- 5
+
+# Function to simulate one batch
+simulate_batch <- function(batch_size, p) {
+  rbinom(1, batch_size, p) >= min_functional
+}
+
+# Function to estimate probability for a given batch size
+estimate_prob <- function(batch_size, p, simulations = 1e4) {
+  mean(replicate(simulations, simulate_batch(batch_size, p)))
+}
+
+# Find minimum batch size
+batch_size <- 1
+while (estimate_prob(batch_size, phat) < desired_prob) {
+  batch_size <- batch_size + 1
+}
+batch_size
+
+```
+
+***
+- I use a Monte Carlo simulation method to iteratively determine the minimum batch size required to ensure that at least 5 widgets are functional with a probability of at least 99%, given a widget functionality rate of 82%. It does so by simulating the outcomes for batches of increasing size until the desired probability threshold is met, using the binomial distribution to model the number of functional widgets per batch.
+
+***
+

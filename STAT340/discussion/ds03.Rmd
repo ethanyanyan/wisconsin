@@ -1,0 +1,425 @@
+---
+title:  "STAT340 Discussion 3: Monte Carlo"
+output: html_document
+author: "Will Brooker, Josh Fisher, Sujay Tata, Ethan Yan"
+---
+
+## XKCD comic
+
+<center><a href="https://xkcd.com/2118/"><img id="comic" src="https://imgs.xkcd.com/comics/normal_distribution.png" title="It's the NORMAL distribution, not the TANGENT distribution."></a></center>
+
+---
+
+Complete these in your discussion groups. One submission per group.
+This week, the problems are a little bit more complex/lengthy, so just **choose *TWO* of the following exercises to complete**.
+
+Please make it clear which two you are attempting (e.g. by deleting the third). Bonus parts are of course optional but encouraged if you have extra time and want to get some more practice.
+
+---
+
+## 1. Estimating Robbin's constant
+
+[Robbin's constant](https://mathworld.wolfram.com/CubeLinePicking.html) is the mean distance between two points in a cube.
+
+a. Randomly generate two points $(x_1,y_1,z_1)$, $(x_2,y_2,z_2)$ **uniformly** in the unit cube a total of $N$ times (at least $1000$, but the more the better!)
+      - hint: you can easily generate all the coordinates you need at once with `runif(6*N)`, then [reshape](https://stackoverflow.com/questions/17752830/r-reshape-a-vector-into-multiple-columns) to an $N\times 6$ matrix (one column for each coordinate component, with each row representing a pair of points), and then perform the arithmetic in the next step by using vectorized operations on the columns (i.e., using each column all at once) to improve computational efficiency.
+      - if you are having difficulties with the above, you can always use the simpler approach of running a for loop N times, where in each step of the loop you generate 2 points (6 coordinates total) and then perform the arithmetic in the next step. For-loops in R tend to be slower than vectorized operations, though!
+      
+```{r}
+
+N <- 10000
+
+points <- runif(6*N)
+matrix_points <- matrix(points, ncol=6, byrow=TRUE)
+# Now col 1 is x1, col2 is y1, col3 is z1,...
+
+head(matrix_points)
+
+```
+      
+b. Next, compute the standard [Euclidean distance](https://en.wikipedia.org/wiki/Euclidean_distance#Higher_dimensions) between each pair of points and find the mean distance. (Bonus: plot the distribution of these distances!)
+
+```{r}
+
+distances <- sqrt((matrix_points[,4] - matrix_points[,1])^2 + 
+                  (matrix_points[,5] - matrix_points[,2])^2 + 
+                  (matrix_points[,6] - matrix_points[,3])^2)
+
+robbins_constant <- mean(distances)
+robbins_constant
+
+hist(distances, main="Distribution of Euclidean Distances", xlab="Distance", col="skyblue")
+
+```
+
+c. Calculate your [percentage error](https://www.mathsisfun.com/numbers/percentage-error.html) from the [true value](https://stat.ethz.ch/R-manual/R-devel/library/base/html/Constants.html).
+
+```{r}
+
+true_value = 1/105 * (4 + 17 * sqrt(2) - 6 * sqrt(3) + 21 * log(1 + sqrt(2)) + 42 * log(2 + sqrt(3)) - 7 * pi)
+
+true_value
+
+percentage_error <- abs(true_value - robbins_constant) / true_value * 100
+
+percentage_error
+
+```
+
+d. __Bonus:__ can you increase the accuracy of your estimation by using more points (i.e., increasing $N$)? How low can you get the error?
+
+```{r}
+
+N <- 1e7
+
+points <- runif(6*N)
+matrix_points <- matrix(points, ncol=6, byrow=TRUE)
+# Now col 1 is x1, col2 is y1, col3 is z1,...
+
+distances <- sqrt((matrix_points[,4] - matrix_points[,1])^2 + 
+                  (matrix_points[,5] - matrix_points[,2])^2 + 
+                  (matrix_points[,6] - matrix_points[,3])^2)
+
+robbins_constant <- mean(distances)
+
+percentage_error <- abs(true_value - robbins_constant) / true_value * 100
+
+percentage_error
+
+```
+
+e. __Super bonus:__ Repeat the above for another 2D or 3D object of your choice (how about a triangle or a sphere?)
+
+- Consider an equilateral triangle for simplicity, with side lengths=1 and vertices at (0,0), (1,0), and (0.5,sqrt(3)/2).
+
+```{r}
+
+N <- 10000
+
+generate_point <- function() {
+  u <- runif(1)
+  v <- runif(1)
+  if (u + v > 1) {
+    u <- 1 - u
+    v <- 1 - v
+  }
+  x <- u + 0.5 * v
+  y <- sqrt(3)/2 * v
+  return(c(x, y))
+}
+
+distances <- replicate(N, {
+  pt1 <- generate_point()
+  pt2 <- generate_point()
+  sqrt(sum((pt2 - pt1)^2))
+})
+
+mean_distance <- mean(distances)
+
+mean_distance
+
+hist(distances, main="Distribution of Distances in an Equilateral Triangle", xlab="Distance", col="skyblue", breaks=40)
+
+
+```
+
+---
+
+## 2. Flipping coins
+
+Suppose you flip a fair coin $N$ times. How many heads in a row should you expect to see? For example, suppose that I flip a coin 20 times, and I get 5 heads in a row at some point in the sequence. Is this a "surprising" outcome?
+
+   a. Write code to simulate randomly flipping a fair coin ($p=0.5$) a total of $N=10$ times (hint: use either the `rbernoulli` function from the `purrr` package or `rbinom` with `n=10` and `size=1`) and record how many heads (defined as a value of $1$; tails is $0$) in a row you observe. Determining the length of the longest run has been implemented in the function `longest_head_run` below.
+   
+```{r}
+# given output of rbernoulli or rbinom (a vector of 0's and 1's)
+# compute the length of the longest continuous run of 1's
+longest_head_run <- function(trials) {
+  rle_encoded <- rle(trials)
+  head_sequence_indicators <- rle_encoded$values == 1
+  
+  if (!any(head_sequence_indicators)) {
+    return(0L)
+  }
+  
+  lengths_head_sequences <- rle_encoded$lengths[head_sequence_indicators]
+  
+  max(lengths_head_sequences)
+}
+
+# demo of using longest_head_run
+longest_head_run(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)) # returns 0
+longest_head_run(c(1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0)) # returns 3
+```
+   
+```{r}
+
+simluated_flips <- rbinom(10,1,0.5)
+
+longest_head_run(simluated_flips)
+
+```
+
+   b. Repeat the above experiment $M$ times. Set $M$ to be at least $1000$, but don't make it extremely large, because we are going to repeat the previous step for other values of the number of flips $N$. What is the mean length of the largest run of heads in $N=10$ flips?
+      - __Note:__ $N$ here is the *size of each experiment*. That is, each experiment consists of $N$ flips. On the other hand, $M$ is *how many experiments* are performed (i.e., the number of times we repeat the experiment). It is common when using Monte Carlo methods to have two types of parameters: one type for the properties of each experiment (e.g., $N$, in this case), and one type that determines how many experiments are done (here, $M$). Increasing $N$ (number of flips in each experiment) will change the experiment by increasing the mean-run-length, whereas increasing $M$ (the number of experiments) will increase the precision of the estimate of the mean run length for a particular number of flips $N$.
+      
+```{r}
+
+M <- 10000
+
+
+find_mean_run <- function(N, M, p = 0.5) {
+  results <- numeric(M)
+  for(i in 1:M) {
+    simulated_flips <- rbinom(N, 1, p)
+    results[i] <- longest_head_run(simulated_flips)
+  }
+  
+  return (mean(results))
+}
+
+
+find_mean_run(10, M)
+
+
+```      
+      
+      
+   c. Now, repeat the above (you may use the same $M$) for *at least 3* other values of $N$ (again, feel free to do more if you wish!). Display your results in a table.
+      - __Note:__ this step should be easy if you've written your code with good style. I recommend writing a function that does all the above for any given $N$ and $M$ and, optionally, $p$. For example, something like  `find_mean_run <- function(N, M, p = 0.5) {......}`. Then, for different values of $N$ and $M$ you can simply change the arguments given to the function, e.g. `find_mean_run(10, 1000)` or `find_mean_run(20, 1000)`, etc., then put them in a data frame.
+      - __Note:__ the above function syntax sets `N` and `M` as arguments to the function without default values, but sets `0.5` as the default value of the argument `p`. For a different example, [see this](https://www.javatpoint.com/r-function-default-arguments).
+      
+```{r}
+
+M <- 10000
+
+N_values <- c(20, 50, 70, 100)
+mean_runs <- sapply(N_values, function(N) find_mean_run(N, M))
+
+results_table <- data.frame(N = N_values, Mean_Longest_Run = mean_runs)
+
+results_table
+
+```
+
+   d. Validate your results against other people's results (for example, [this post](https://math.stackexchange.com/a/1409539)). Are your results consistent with others?
+   
+```{r}
+
+calculate_expected_longest_run <- function(n, p) {
+  expected_longest_run <- log(n * (1 - p)) / log(1 / p)
+  return(expected_longest_run)
+}
+
+n_values <- c(10, 20, 50, 70, 100)
+p <- 0.5
+
+expected_runs <- sapply(n_values, function(n) calculate_expected_longest_run(n, p))
+
+results_table <- data.frame(N = n_values, Expected_Longest_Run = expected_runs)
+
+results_table
+
+```
+
+   e. __Bonus:__ run a few more values of $N$ and plot the results, showing the mean run length as a function of the number of flips $N$. (bonus²: what happens if you increase $M$?)
+   
+```{r}
+
+n_values <- c(10, 20, 50, 70, 100, 200, 320, 500, 700, 1000, 1500, 2200, 3100, 4500)
+
+M <- 10000
+p <- 0.5
+
+expected_runs <- sapply(n_values, function(n) find_mean_run(n, M, p))
+
+plot(n_values, expected_runs, type = "b", col = "blue",
+     main = "Mean Longest Run of Heads vs. Number of Flips",
+     xlab = "Number of Flips (N)", ylab = "Mean Longest Run of Heads",
+     pch = 19)
+
+
+```
+   f. __Super bonus:__ Like [the post referenced above](https://math.stackexchange.com/questions/1409372/what-is-the-expected-length-of-the-largest-run-of-heads-if-we-make-1-000-flips/1409539#1409539), can you fit a smooth curve through the points?
+
+```{r}
+
+log_model <- lm(expected_runs ~ log(n_values))
+
+predicted_runs <- predict(log_model, data.frame(n_values = n_values))
+
+plot(n_values, expected_runs, type = "b", col = "blue",
+     main = "Mean Longest Run of Heads vs. Number of Flips",
+     xlab = "Number of Flips (N)", ylab = "Mean Longest Run of Heads")
+
+lines(n_values, predicted_runs, col = "red", lwd = 2)
+
+legend("bottomright", legend = c("Simulated Data", "Log Fit"), col = c("blue", "red"), lty = 1, pch = c(19, NA), lwd = c(1, 2))
+
+
+```
+
+---
+
+## 3. Simulating a $t$-distribution with $N-1$ degrees of freedom.
+
+a. Choose an arbitrary $\mu$ and $\sigma>0$ to __use for the rest of the problem.__ You may choose the standard normal $N(0,1)$ if you *really* wish, but where's the fun in that?
+
+```{r}
+
+mu <- 3
+sigma <- 5
+
+```
+
+b. Start by sampling $N=2$ values from the normal distribution with mean $\mu$ and standard deviation $\sigma$ (note this counts as $1$ experiment) and calculate the $t$-statistic of your sample. Recall the $t$-statistic for a sample $X$ is defined as
+   $$t=\frac{\overline{X}-\mu}{s/\sqrt{N}}~,~~~s=\sqrt{\frac{1}{N-1}\sum_{i=1}^{N}(X_i-\overline{X})^2}$$ where $\overline{X}$ is the sample mean and $s$ is the [sample standard deviation](https://www.khanacademy.org/math/statistics-probability/summarizing-quantitative-data/variance-standard-deviation-sample/a/population-and-sample-standard-deviation-review). The R function `sd` will compute this for you. See `?sd`.
+      - __Note:__ Make sure you're actually computing the $s$ for this sample, not just using $\sigma$, here!
+      - You can use the built-in `mean( )` and `sd( )` functions to compute $\overline{X}$ and $s$, respectively, but if you _really_ want to do a completely manual Monte Carlo, feel free to compute the $t$-statistic yourself.
+      - __Another note:__ Similar to the note in exercise 2b, $N$ here is the *size of each experiment* and $M$ is *how many experiments* are performed. Increasing $N$ gives a $t$-distribution with a different number of degrees of freedom (namely, $N-1$), whereas increasing $M$ gives a more accurate estimate of each distribution of a particular degree.
+      
+```{r}
+
+N <- 2
+sample <- rnorm(N, mu, sigma)
+
+sample_mean <- mean(sample)
+sample_mean
+
+sample_sd <- sd(sample)
+sample_sd
+
+t_statistic <- (sample_mean - mu) / (sample_sd / sqrt(N))
+t_statistic
+
+```
+
+c. Repeat the above step $M$ times (similar to exercise 2b, use at least $1000$ times, but don't use an extremely large $M$ since we will repeat this for other values of $N$).
+
+```{r}
+
+M <- 10000
+
+find_tstats <- function(N, M, mu, sigma) {
+  t_statistics <- numeric(M)
+  for(i in 1:M) {
+    sample <- rnorm(N, mu, sigma)
+    sample_mean <- mean(sample)
+    sample_sd <- sd(sample)
+    t_statistics[i] <- (sample_mean - mu) / (sample_sd / sqrt(N))
+  }
+  
+  return (t_statistics)
+}
+
+t_stats <- find_tstats(N, M, mu, sigma)
+
+head(t_stats)
+
+```
+
+d. You've just simulated drawing from a $t$-distribution with $N-1=1$ degree of freedom! Now plot the resultant values in a [density](https://www.r-graph-gallery.com/21-distribution-plot-using-ggplot2) plot.
+
+```{r}
+
+library(ggplot2)
+
+df_t_stats <- data.frame(t_stats)
+
+ggplot(df_t_stats, aes(x = t_stats)) +
+  geom_density(fill = "skyblue", alpha = 0.5) +
+  labs(title = "Density Plot of t-statistics",
+       x = "t-statistic",
+       y = "Density") +
+  theme_minimal() +
+  xlim(-10, 10)
+
+```
+
+e. For comparison, plot the theoretical distribution with $1$ degree of freedom ([this page](https://t-redactyl.io/blog/2016/03/creating-plots-in-r-using-ggplot2-part-9-function-plots.html) may be helpful). For best results, overlay this on top of the previous plot, but if you're having trouble with this, you can also plot them side-by-side. See `?dt` for the density of the $t$-distribution in R.
+
+```{r}
+
+density_plot <- ggplot(df_t_stats, aes(x = t_stats)) +
+  geom_density(aes(y = ..density..), fill = "skyblue", alpha = 0.5) +
+  labs(title = "Density Plot of t-statistics with Theoretical t-Distribution Overlay",
+       x = "t-statistic",
+       y = "Density") +
+  theme_minimal() +
+  xlim(-10, 10)
+
+x_values <- seq(-10, 10, length.out = 200)
+theoretical_density <- dt(x_values, df = 1)
+df_theoretical <- data.frame(x_values, Density = theoretical_density)
+
+density_plot + geom_line(data = df_theoretical, aes(x = x_values, y = Density), colour = "red", size = 1)
+
+```
+
+f. Repeat the above steps for *at least 3* other values of $N$ (for example 3, 6, 11, but feel free to choose your own or choose more than 3!). For each $N$, plot both your simulated distribution and the theoretical distribution.
+      - __Note:__ again, like the note in exercise 2c, this should be easy if you used a function!
+      
+```{r}
+
+N_values <- c(3, 6, 11)
+
+
+for (N in N_values) {
+  M <- 10000
+  mu <- 3
+  sigma <- 5
+  t_stats <- find_tstats(N, M, mu, sigma)
+  
+  df_simulated <- data.frame(t_stats = t_stats)
+  
+  # Generate data for theoretical t-distribution
+  x_values <- seq(-10, 10, length.out = 200)
+  theoretical_density <- dt(x_values, df = N-1)
+  df_theoretical <- data.frame(x_values, Density = theoretical_density)
+  
+  p <- ggplot() +
+    geom_density(data = df_simulated, aes(x = t_stats, y = ..density..), fill = "skyblue", alpha = 0.5) +
+    geom_line(data = df_theoretical, aes(x = x_values, y = Density), color = "red", size = 1) +
+    labs(title = paste("Simulated vs. Theoretical t-Distribution (N =", N, ")"),
+         x = "t-statistic", y = "Density") +
+    theme_minimal() +
+    xlim(-10, 10)
+  
+  print(p)
+}
+
+```
+
+g. __Bonus:__ What do you notice about how the distribution changes as $N$ increases? What happens if you crank $N$ way up (e.g., to $N=100$ or $N=1000$)?
+
+- The t-distribution becomes closer to the standard normal distribution as N increases.
+- With lower degrees of freedom (N−1), the t-distribution has thicker tails than the normal distribution.
+
+```{r}
+
+N_values <- c(100, 1000)
+for (N in N_values) {
+  M <- 10000
+  mu <- 3
+  sigma <- 5
+  t_stats <- find_tstats(N, M, mu, sigma)
+  
+  df_simulated <- data.frame(t_stats = t_stats)
+  
+  # Generate data for theoretical t-distribution
+  x_values <- seq(-10, 10, length.out = 200)
+  theoretical_density <- dt(x_values, df = N-1)
+  df_theoretical <- data.frame(x_values, Density = theoretical_density)
+  
+  p <- ggplot() +
+    geom_density(data = df_simulated, aes(x = t_stats, y = ..density..), fill = "skyblue", alpha = 0.5) +
+    geom_line(data = df_theoretical, aes(x = x_values, y = Density), color = "red", size = 1) +
+    labs(title = paste("Simulated vs. Theoretical t-Distribution (N =", N, ")"),
+         x = "t-statistic", y = "Density") +
+    theme_minimal() +
+    xlim(-10, 10)
+  
+  print(p)
+}
+
+```

@@ -1,0 +1,172 @@
+---
+title: "Homework 1"
+output: 
+  html_document:
+    self_contained: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+
+## Problem 1 <small>(2pts each, 8pts total)</small>
+
+Here are a few probability exercises to get you warmed up.
+
+a. Consider $X\sim \text{Normal}(5, 2^2)$. Find $P(4 < X < 7)$
+
+```{r}
+
+pnorm(7,5,2) - pnorm(4,5,2)
+
+```
+b. Suppose you have an uneven 6-sided die where the even numbers are equally likely to occur and the odd numbers are also equally likely. The expected value of the die is $3.3333$ (i.e. $\frac{10}{3})$. What is the probability of getting a 6?
+   (Hint: Let $p$ represent the probability of getting an even number, and represent the probability of the other numbers algebraically. Then derive an expression for the expected value, let it equal $\frac{10}{3}$, and solve. You can go back and check your work by plugging the result back into your original expressions and verify it works with R.)
+   
+> If $p$ is the probability of getting an even number, then probability of getting an odd number is (1-p). The probability of getting etiher 2, 4 or 6 is  p/3 and the probability of getting either 1, 3, or 5 is (1-p)/3. Therefore the expected value is (p/3)*2 + (p/3)*4 + (p/3)*6 + ((1-p)/3)*1 + ((1-p)/3)*3 + ((1-p)/3)*5 = 4p + 3(1-p) = p+3. This would equal 10/3. So p+3 = 10/3 and p = 1/3. Then, probability of getting a 6 is therefore (1/3)/3 = 1/9.
+
+
+c. Give **two examples** of pairs of events that are mutually exclusive and explain why for each.
+
+- Flipping a Coin (Heads or Tails):
+  - Event: Getting a heads and getting a tails on a single coin toss.
+  - Explanation: When you flip a standard coin, it can only land on one side - either heads or tails. If it lands on heads, it cannot be tails at the same time, and vice versa. Thus, the events of getting a heads and getting a tails on a single coin flip are mutually exclusive.
+  
+- Drawing a Card from a Deck (Ace or King):
+  - Event: Drawing an ace and drawing a king from a standard deck of cards in one draw.
+  - Explanation: A standard deck of cards has separate cards for Aces and Kings. If you draw one card from this deck, it can only be one specific card. It cannot be an Ace and a King at the same time. Therefore, drawing an Ace and drawing a King in a single card draw are mutually exclusive events.
+
+d. Give **two examples** of pairs of events that are independent and explain why for each.
+
+- Flipping a Coin and Rolling a Die:
+  - Events: Getting a heads on a coin flip and rolling a 6 on a six-sided die.
+  - Explanation: Flipping a coin and rolling a die are two separate and unrelated actions. The outcome of the coin flip does not influence or change the probability of rolling a 6 on the die. Each event has its own probability that is unaffected by the occurrence of the other event, making them independent.
+  
+- Drawing Two Cards from a Deck with Replacement:
+  - Events: Drawing a queen from a standard deck of cards on the first draw and drawing a queen again on a second draw, after replacing the first card and reshuffling the deck.
+  - Explanation: When you draw a card from a deck, look at it, replace it, and then reshuffle the deck, the outcome of the second draw is not affected by the first draw. The deck returns to its original state or randomness after each draw and reshuffle, so the probability of drawing a Queen the second time is the same as it was the first time. The replacement and reshuffling ensure that the two events are independent of each other.
+
+
+## Problem 2 <small>(2pts each, 14pts total)</small>
+
+For each of the following scenarios, decide what random variable may be appropriate to use as a model, and explain your reasoning as well as any assumptions you make.
+
+a. The number of patients in an experimental drug trial that respond to treatment.
+
+- Binomial Random Variable
+  - Reasoning:
+    - (B) Binary Outcomes: Each patient in the trial can have one of two outcomes - they either respond to the treatment, or they do not. This binary outcome is characteristic of binomial experiments.
+    - (I) Independent Trials: It is assumed that the response of one patient to the treatment is independent of the response of another patient. This independence of trials is necessary for a binomial distribution.
+    - (N) Fixed Number of Trials: The total number of patients in the trial is fixed, which is a requirement for a binomial distribution. If there are $n$ patients, then there are $n$ trials in this binomial experiment.
+    - (S) Constant Probability of Success: The probability of any patient responding to the treatment is assumed to be the same for each trial.
+  - Assumptions:
+    - Independence of Outcomes: Each patient's response to the treatment is independent of others'.
+    - Consistent Response Probability: The probability of responding to the treatment is the same for each patient.
+    - No Other Outcomes: The trial outcomes are strictly binary - either a response or no response. There are no partial responses or other categories of outcomes.
+
+
+b. The number of red cars you observe driving through an intersection between 10am and 11am.
+
+- Poisson Random Variable
+  - Reasoning:
+    - Counting Occurrences Over Time: The Poisson distribution is typically used to model the number of occurrences of an event within a fixed period of time. In this case, the event is observing a red car, and the time period is the one hour between 10am and 11am.
+    - Independence of Occurrences: It is assumed that each car passing through the intersection does so independently of others. The arrival of one car does not affect the arrival of another.
+    - Constant Average Rate: The Poisson model assumes that the average rate of occurrence, in this case, the average number of red cars passing through the intersection, is constant over the period of interest, 10am to 11am.
+  - Assumptions:
+    - Independent Arrivals: The passage of each red car through the intersection is assumed to be an independent event.
+    - Uniform Rate: The rate at which red cars pass through the intersection is assumed to be constant during the hour.
+
+
+c. What the second hand reads on the clock when you wake up from a long nap (approximately).
+
+- Uniform Random Variable (Continuous)
+  - Reasoning: 
+    - Equally Likely Outcomes: The uniform distribution is used when the outcomes of a random variable are equally likely. In this case, assuming you have no inherent bias towards waking up at any particular second, each position of the second hand, from 0 to 59 seconds, is equally likely.
+    - Continuous Range of Outcomes: If we consider the second hand's reading as a continuous variable, as it moves continuously around the clock, then every point in the interval from 0 to 60 seconds is a possible outcome.
+  - Assumptions:
+    - No Time Bias: You are equally likely to wake up at any second during the minute. There's no particular time that you're more likely to wake up.
+    - Uniform Probability: The probability distribution of waking up at any given second is uniform across the 60 seconds of a minute.
+    
+d. How many people you need to swipe right on Tinder before you get a match.
+
+- Geometric Random Variable
+  - Reasoning:
+    - First Success Probability: The geometric distribution models the probability of conducting a series of Bernoulli trials, in this case, swiping right, until the first success, getting a match. It tells us the probability distribution of the number of tries needed to get before the first success.
+    - Independent Trials: Each swipe right is assumed to be independent of the others. The outcome of one swipe, match or no match, does not affect the outcomes of subsequent swipes.
+    - Constant Probability of Success: Each swipe has a constant probability of resulting in a match. This probability is the same for every swipe.
+  - Assumptions:
+    - Independence of Swipes: Each swipe is an independent event. The probability of getting a match from a swipe does not change based on previous swipes.
+    - Identical Probability for Each Swipe: The likelihood of getting a match from any single swipe is constant and does not vary from swipe to swipe.
+    
+    
+e. The length of time between mosquito bites a camper experiences while on a hike.
+
+- Exponential Random Variable
+  - Reasoning:
+    - Random, Independent Events: Mosquito bites can be considered random and independent events over time, with each bite not being influenced by the time or occurrence of previous bites.
+    - Continuous Time Interval: The exponential distribution models the time between events in a continuous manner, making it a suitable choice for measuring time intervals, such as the time between mosquito bites.
+  - Assumptions:
+    - Constant Bite Rate: The rate at which mosquito bites occur is constant over time. This means the camper's likelihood of getting bitten per unit of time remains the same throughout the hike.
+    - Randomness and Independence: Each mosquito bite is a random and independent event. The occurrence of one bite does not affect the likelihood or timing of future bites.
+    
+    
+f. Whether the Eagles win the Superbowl this year.
+
+- Bernoulli Random Variable
+  - Reasoning:
+    - Binary Outcomes: The Bernoulli distribution is used to model random variables that have only two possible outcomes. In this case, the two outcomes are: the Eagles win the Super Bowl (success), or the Eagles do not win the Super Bowl (failure).
+    - Single Trial: The event of the Eagles winning the Super Bowl is a single occurrence or trial happening this year. The Bernoulli distribution is appropriate for modeling probabilities over a single trial.
+  - Assumptions:
+    - Defined Outcomes: The outcome of interest is well-defined as a binary event (win or not win).
+    - One Season Observation: The model is considering the outcome of just one specific Super Bowl, rather than multiple seasons or games.
+    
+    
+g. The GPA of a randomly selected UW-Madison graduate.
+
+- Normal Random Variable
+  - Reasoning:
+    - Continuous and Unbounded: GPAs are continuous data and can vary within a certain range, from 0.0 to 4.0. A normal distribution is often used for continuous data.
+    - Central Tendency: GPAs often tend to cluster around a mean value with fewer students obtaining very high or very low GPAs. This creates a bell-shaped distribution, which is characteristic of a normal distribution.
+    - Symmetry Around the Mean: The distribution of GPAs is likely to be symmetric around the mean, with the number of students gradually decreasing as you move away from the mean in either direction.
+  - Assumptions:
+    - Normal Distribution: The GPAs are normally distributed. 
+    - Range of GPAs: The GPAs are confined within 0.0 to 4.0, but for the purpose of the model, they can be treated as if they could vary without bound.
+    - Standard Deviation: A standard deviation that adequately reflects the spread of GPAs. 
+    
+
+## Problem 3 <small>(2pts each, 8pts total)</small>
+
+Below you will find the plot of a probability density function for a random variable $X$.
+
+```{r, echo=FALSE}
+plot(x=c(0,1,2,3), y=c(0,.5,.5,0), type="l", ylab="density", xlab="x", main="pdf of X")
+```
+
+Using just geometry answer a and b:
+
+a. What is $Pr[X < 1]$?
+
+- 0.25, we can form 4 triangles, that of the area under the plot from 0.0 to 1.0.
+
+b. What is $Pr[1.5 < X < 2.5]$
+
+- 7/16, we can form smaller triangles, with each triangle being that under the plot from 0.0 to 0.5. There will be 16 total triangles under the plot and thus Pr[1.5 < X < 2.5] = 7/16 as there are 7 small triangles under the plot in that range of X.
+
+c. Consider the CDF given below for random variable $Y$ (we're not naming it $X$ to keep it distinct from parts a and b)
+```{r}
+plot(x=0:6, y=c(0,.3,.5, .6, .75,.8,1), type="s", ylab="F(y)", xlab="y", main="cdf of Y")
+abline(h=seq(.1,.9,.1), lty=2, col="gray")
+
+```
+Express the pmf of $Y$ in the following R code (in other words, fill in the missing probabilities)
+```{r}
+y<- 1:6
+py <- c(0.3,0.2,0.1,0.15,0.05,0.2) ## edit this line
+barplot(height=py, names=y, main="pmf of Y")
+```
+d. Calculate $E[Y]$ for the variable $Y$ in part c.
+
+- 0.3 * 1 + 0.2 * 2 + 0.3 * 1 + 0.15 * 4 + 0.05 * 5 + 0.2 * 6 = 3.05
+- $E[Y] = 3.05$

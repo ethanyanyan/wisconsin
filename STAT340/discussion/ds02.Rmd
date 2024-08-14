@@ -1,0 +1,258 @@
+---
+title:  "STAT340 Discussion 2: Conditional Probability"
+output: html_document
+author: "Will Brooker, Josh Fisher, Sujay Tata, Ethan Yan"
+---
+
+```{r, echo=FALSE}
+library(ggplot2)
+```
+
+## XKCD comic
+
+<center><a href="https://xkcd.com/1236/"><img src="https://imgs.xkcd.com/comics/seashell.png" id="comic"/></a></center>
+
+In this lab we'll explore some fun and weird paradoxes and fallacies related to conditional probability.
+
+------------------------------------------------------------------------
+
+### 1. Berkson's Paradox : Attractive people have worse personalities?
+
+Are attractive people more likely to be jerks? This is an observation some people make - it seems when going on a date with someone the more attractive they are the worse their personality seems to be. Why could this possibly be?
+
+This can be explained using conditional probability. Suppose that in the population people's personalities are uniformly distributed between 1 and 10, same goes for attractiveness.
+
+```{r}
+#Build the population
+pop.size <- 100000
+
+#The ceiling function rounds up. Taking a uniform from 0 to 10 and rounding up will give us an integer from 1 to 10
+attractiveness <- ceiling(runif(pop.size,0,10))
+personality <- ceiling(runif(pop.size,0,10))
+dating.population <- data.frame(attractiveness,personality)
+```
+
+a. What is the correlation between attractiveness and personality in the population? You can use the cor function in R to calculate correlation.
+
+```{r}
+
+cor(attractiveness, personality)
+
+```
+
+- The correlation is -0.004555324, which is very close to 0. This indicates that there is essentially no linear relationship between these two variables within the entire population. In other words, a person's attractiveness is not linearly related to their personality
+
+b. Let's imagine a new dating app called "Datem" (get it?). The population using the app is representative of the overall population. When you view someone's profile you make some judgement about their personality as well as their attractiveness. Suppose you will only swipe right if the sum of their attractiveness and personality is at least 10. 
+
+Go through the population and create a subset who get a right swipe. You can use the subset(df, condition) function to do this easily in R. After you do, check the correlation between attractiveness and personality.
+
+```{r}
+
+right_swipe_subset <- subset(dating.population, attractiveness + personality >= 10)
+
+cor(right_swipe_subset$attractiveness, right_swipe_subset$personality)
+
+
+```
+
+- Now, the correlation is -0.4654772, this indicates a moderate negative linear relationship between these two variables. This means that within this subset, as the attractiveness of a person increases, their perceived personality score tends to decrease, and vice versa. 
+
+c. Consider other standards (higher and lower) for the sum of these two traits. What is the correlation in the subset for others. Bonus: You could create a vector standard <- 2:19 and for each standard calculate the correlation, then plot the two variables to see the effect of someone's "Swipe Right" standard on the people they potentially get matched with.
+
+```{r}
+
+cor_nums_set <- numeric(length = 0)
+
+standard <- 2:19
+
+for (i in standard) {
+  right_subsets <- subset(dating.population, attractiveness + personality >= i)
+  cor_num <- cor(right_subsets$attractiveness, right_subsets$personality)
+  cor_nums_set <- c(cor_nums_set, cor_num) 
+}
+
+cor_nums_set
+
+cor_data <- data.frame(Standard = standard, Correlation = cor_nums_set)
+
+ggplot(cor_data, aes(x = Standard, y = Correlation)) +
+  geom_line() + 
+  geom_point() + 
+  theme_minimal() + 
+  labs(title = "Effect of Swipe Right Standard on Attractiveness-Personality Correlation",
+       x = "Swipe Right Standard",
+       y = "Correlation between Attractiveness and Personality")
+
+```
+
+d. Big question: If it seems that when dating that attractive people tend to be jerks, is there another explanation for this?
+
+- Attractive individuals might develop different social skills due to the way society treats them. This doesn't necessarily mean their personalities are worse, rather, their social interactions may evolve differently, which can be perceived in various ways by others.
+
+### 2. The Book Award
+
+Researchers have found that quality ratings for books that had won literary awards went down after the book won the award. This seems paradoxical, since people usually like books more if they know other people like them. 
+
+Imagine an author who has a cult following. Fans of this author love their books in general. A new book is published and the ratings received from fans can be modeled with a binomial(5,.9) random variable. When someone from the general public reads the book they give it a rating from a binomial(5,.5) distribution.
+
+a. Suppose that for the first 5 months that 90% of the ratings come from fans of the author and only 10% come from people in the general public. What would the average star rating on Amazon be?
+
+```{r}
+
+average_rating <- 0.9 * (5 * 0.9) + 0.1 * (5 * 0.5)
+average_rating
+
+```
+
+- The average rating would be 4.3 stars.
+
+b. Then the book receives an award. This is big news and the readership changes as a lot of people buy the book because it is popular. Now 80% of the people who read the book are coming from the general public and only 20% are from the fanbase. What would the average star rating be now?
+
+```{r}
+
+average_rating2 <- 0.2 * (5 * 0.9) + 0.8 * (5 * 0.5)
+average_rating2
+
+```
+
+- The average star rating would now be 2.9 stars.
+
+### 3. Mediocre State University
+
+Not everybody gets into the best college. That's just the way it is. For those who can't get into the best university there's Mediocre State University (MSU). Their motto: "You take the best, we'll take the rest."
+
+AS the first years are getting to know each other they discover a weird trend; those who got high GPAs in high school tended to have low SAT scores, and vice versa. How could this be the case?
+
+Let's simplify the college application process and imagine that schools just look at two factors: a student's GPA and a student's SAT score. 
+
+```{r}
+# Build a population of high school seniors applying for college. 
+pop.size <- 100000
+GPAs <- rnorm(pop.size, 3,.3)
+GPAs <- pmin(GPAs, 4)
+GPAS <- pmax(GPAs,0)
+SATs <- 1050+500*(GPAs-3)+rnorm(pop.size,0,150)
+SATs <- pmin(SATs,1600)
+SATs <- pmax(SATs,0)
+seniors <- data.frame(GPAs, SATs)
+plot(GPAs,SATs)
+```
+a. What is the correlation between GPA and SAT score in the population of high school seniors?
+
+```{r}
+
+cor(GPAs, SATs)
+
+```
+
+- The correlation is 0.7068204, which indicates a strong positive linear relationship. This means that, generally, as a student's GPA increases, their SAT score tends to increase as well, and vice versa. 
+
+b. Do you remember what a z-score is? Given a set of data, the z-score of a value is a standardized value. Standardization is done by subtracting the sample mean and dividing by the sample standard deviation. Don't forget parentheses around the numerator.
+
+$$z = \frac{x-\bar{x}}{s}$$
+
+```{r}
+#Create a vector called zGPAs where you standardize the GPA scores into z-scores
+
+zGPAs <- (GPAs - mean(GPAs))/sd(GPAs)
+
+#Create another vector called zSATs where you standardize the SAT scores into z-scores
+
+zSATs <- (SATs - mean(SATs))/sd(SATs)
+
+```
+
+c. Mediocre State University does not have the highest standards for acceptance. As long as the average z-score for GPA and SAT are above 0 a person is accepted. 
+
+However there's another school that students really want to go into: Exceptional State University. Their acceptance standards are higher. A the average of an applicant's GPA and SAT z score needs to be at least 1 to be accepted to ESU. 
+
+Anybody who is accepted to ESU will go there. Anybody who is not accepted to ESU but is accepted to MSU will go to MSU. Create a subset of the population to reflect the entering class of first years.
+
+```{r}
+# Create a subset of the population who are accepted to MSU and not accepted to ESU. This represents the freshman class of 2027.
+
+msu_accepted <- ((zGPAs + zSATs) / 2 > 0) & ((zGPAs + zSATs) / 2 < 1)
+
+msu_students <- subset(seniors, msu_accepted)
+
+```
+
+d. What is the correlation between GPA and SAT score among undergrade attending MSU?
+```{r}
+
+cor(msu_students$GPAs, msu_students$SATs)
+
+```
+
+- The correlation between GPA and SAT score among undergrads attending MSU is -0.2988282, this indicates a slight negative linear relationship. This means that within this specific subset of students, as GPA increases, SAT scores tend to decrease slightly, and vice versa.
+
+e. Can you now address the original question: Why is it that students at MSU who had high SAT scores tend to have low GPA scores?
+
+- Selection Bias:
+  - MSU's admission criteria, which focus on the average z-score of an applicant's GPA and SAT score being above 0. This criterion effectively filters out students who are strong in both metrics (who would then be accepted to Exceptional State University) and admits students who might excel in one metric but not the other. Consequently, the admitted MSU population is more likely to consist of students who:
+    - Have high SAT scores but comparatively lower GPAs, because their SAT strength compensates for their GPA weakness, allowing them to meet the admission criterion.
+    - Have high GPAs but comparatively lower SAT scores, for similar reasons.
+
+
+### 4. Base Rate Fallacy
+
+Suppose that we are living through a pandemic. Imagine that the hospitalization rate for those infected is 10% (if a person is infected, there's a 10% chance that they end up in the hospital). A vaccine is developed and if a person is vaccinated then their hospitalization rate drops to 0.5%.
+
+a. Early on only 5% of the population is vaccinated. What proportion of those hospitalized are vaccinated?
+
+- Let H be hospitalised, V be vaccinated, and I be infected
+
+- P(H | I) = 0.1, P(not H | I) = 0.9, P(H | I & V) = 0.005, P(H | I & not V) = 0.1, P(V) = 0.05, P(not V) = 0.95
+- Want to find P(V | H).
+- P(H) = P(H | I & V) * P(I & V) + P(H | I & not V) * P(I & not V) = 0.005 * 0.05 + 0.1 * 0.95 = 0.09525
+- P(V | H) = P(H | V) * P(V) / P(H) = 0.005 * 0.05 / P(H) = 0.002624672
+
+
+```{r}
+#Your code / calculations go here
+
+p_H <- 0.005 * 0.05 + 0.1 * 0.95
+p_H
+
+p_VH <- 0.005 * 0.05 / p_H
+p_VH
+
+```
+
+b. Later on in the pandemic 25% of the population is vaccinated. What proportion of those hospitalized are vaccinated?
+
+- P(H | I) = 0.1, P(not H | I) = 0.9, P(H | I & V) = 0.005, P(H | I & not V) = 0.1, P(V) = 0.25, P(not V) = 0.75
+- P(H) = P(H | I & V) * P(I & V) + P(H | I & not V) * P(I & not V) = 0.005 * 0.25 + 0.1 * 0.75 = 0.07625
+- P(V | H) = P(H | V) * P(V) / P(H) = 0.005 * 0.25 / P(H) = 0.01639344
+
+```{r}
+#Your code / calculations go here
+
+p_H <- 0.005 * 0.25 + 0.1 * 0.75
+p_H
+
+p_VH <- 0.005 * 0.25 / p_H
+p_VH
+
+```
+
+c. Later on 90% of the population is vaccinated. What proportion of those hospitalized are vaccinated?
+
+- P(H | I) = 0.1, P(not H | I) = 0.9, P(H | I & V) = 0.005, P(H | I & not V) = 0.1, P(V) = 0.9, P(not V) = 0.1
+- P(H) = P(H | I & V) * P(I & V) + P(H | I & not V) * P(I & not V) = 0.005 * 0.9 + 0.1 * 0.1 = 0.0145
+- P(V | H) = P(H | V) * P(V) / P(H) = 0.005 * 0.9 / P(H) = 0.3103448
+
+```{r}
+#Your code / calculations go here
+
+p_H <- 0.005 * 0.9 + 0.1 * 0.1
+p_H
+
+p_VH <- 0.005 * 0.9 / p_H
+p_VH
+
+```
+
+d. You hear someone on the news saying that the proportion of those vaccinated in the hospital is rising and rising, and that this is evidence that the efficacy of the vaccine is diminishing. Do you agree with this argument, or is there an other explanation?
+
+- The rise in the proportion of vaccinated individuals among the hospitalized is expected when a larger fraction of the population is vaccinated. Since the vaccine reduces the risk of hospitalization dramatically (but not to zero), as more people are vaccinated, the pool of unvaccinated individuals who can be hospitalized shrinks more significantly than the risk among the vaccinated does. Hence, even a small risk among a large vaccinated population can result in a noticeable number of hospitalizations, especially compared to the increasingly smaller unvaccinated group.

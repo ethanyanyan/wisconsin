@@ -1,0 +1,286 @@
+
+---
+title:  "STAT340: Discussion 9: linear regression, continued"
+output: html_document
+---
+
+## XKCD comic
+
+<center><a href="https://xkcd.com/1725/"><img id="comic" src="https://imgs.xkcd.com/comics/linear_regression.png"></a></center>
+
+---
+
+Today, we'll continue our discussion of linear regression with a pair of exercises.
+The first will illustrate how including nonlinearities in our model can improve prediction
+The second will give you some practice with  multiple regression and feature selection. 
+
+## Part 1) Nonlinearity and the `cars` Data Set
+
+The `cars` data set (note: this is distinct from the `mtcars` data set!) contains data on stopping distances for cars driving at different speeds.
+```{r}
+data(cars)
+head(cars)
+```
+
+As you can see, the data set has just two columns: `speed` and `dist`, corresponding to speed (in miles per hour) and stopping distance (in feet), respectively.
+Note that this data was gathered in the 1920s. Modern cars can go a lot faster and stop far more effectively!
+
+__Part a: plotting the data__
+
+Create a scatter plot of the data, showing stopping distance as a function of speed (i.e., distance on the y-axis and speed on the x-axis).
+Do you notice a trend?
+If so, does it appear at least vaguely linear? Discuss (a sentence or two is plenty).
+
+```{r}
+
+plot(cars$speed, cars$dist, main = "Stopping Distance vs Speed",
+     xlab = "Speed (mph)", ylab = "Stopping Distance (ft)", pch = 19)
+
+```
+
+***
+
+- Yes, I notice a trend. Based on the scatter plot, I can observe a vaguely linear relationship between stopping distance as a function of speed.
+
+***
+
+__Part b: fitting linear regression__
+
+Use `lm` to fit a linear regression model that predicts stopping distance from speed (and an intercept term).
+That is, fit a model like `dist = beta0 + beta1*speed`.
+
+```{r}
+
+linear_model <- lm(dist ~ speed, data = cars)
+summary(linear_model)
+
+```
+
+Use the resulting slope and intercept terms to create the scatter plot from Part a, but this time add a line, __in blue__, indicating our fitted model (i.e., add a line with slope and intercept given by your estimated coefficients).
+
+```{r}
+
+plot(cars$speed, cars$dist, main = "Stopping Distance vs Speed with Linear Regression Line",
+     xlab = "Speed (mph)", ylab = "Stopping Distance (ft)", pch = 19)
+abline(linear_model, col = "blue")
+
+```
+
+Do you notice anything about your model?
+Is the model a good fit for the data?
+Why or why not?
+Try looking at the residuals (using both the residuals plot and the Q-Q plot).
+Do you notice anything concerning?
+Two or three sentences is plenty here.
+
+```{r}
+
+plot(linear_model)
+
+```
+
+***
+
+- The residuals vs fitted plot indicates a pattern where residuals are predominantly positive for both lower and higher fitted values, but turn negative for the mid-range fitted values. This suggests a potential non-linear relationship not captured by the linear model.
+
+***
+
+Examine the output produced by `lm`.
+Interpret the coefficient of `speed`-- what can we conclude from it?
+Should we or should we not reject the null hypothesis that the `speed` variable has a non-zero coefficient?
+
+```{r}
+
+summary(linear_model)
+
+```
+
+***
+
+- The coefficient for speed is estimated at 3.9324, with a standard error of 0.4155. This suggests that for each one-mile-per-hour increase in speed, the stopping distance is expected to increase by approximately 3.93 feet. The t-value of 9.464 and a very small p-value (1.49e-12) indicate that the effect of speed on stopping distance is statistically significant. Therefore, we can confidently reject the null hypothesis that speed has a non-zero coefficient, affirming its predictive value and impact on stopping distance.
+
+***
+
+__Part c: accounting for nonlinearity__
+
+Let's see if we can improve our model.
+We know from physics class that kinetic energy grows like the square of the speed.
+Since stopping amounts to getting rid of kinetic energy, it stands to reason that stopping distance might be better predicted by the square of the speed, rather than the speed itself.
+It's not exactly clear in the data that such a trend exists, but let's try fitting a different model and see what happens.
+
+Fit the model `dist = beta0 + beta1*speed^2` to the `cars` data. Remember you need to use the I() function in R to transform a predictor in the model.
+
+```{r}
+
+nonlinear_model <- lm(dist ~ I(speed^2), data = cars)
+summary(nonlinear_model)
+
+```
+
+Plot stopping distance as a function of speed again and again add the regression line __in blue__ from Part c.
+Then add another line (a curve, really, I guess), __in red__, indicating the prediction of this new model.
+That is, the predicted distance as a linear function of *squared* speed.
+
+__Hint:__ the speed values in the data range from 4 to 25. You may find it useful to create a vector `x` containing a sequence of appropriately-spaced points from 4 to 25 and evaluate your model at those `x` values.
+
+__Another hint:__ this is the rare problem where it's probably actually easier to use `ggplot2`, but if you prefer to do everything in R, don't forget about the `lines` function, which might be helpful here.
+
+```{r}
+
+speed_seq <- seq(min(cars$speed), max(cars$speed), length.out = 100)
+dist_pred_linear <- predict(linear_model, newdata = data.frame(speed = speed_seq))
+
+dist_pred_nonlinear <- predict(nonlinear_model, newdata = data.frame(speed = speed_seq))
+
+plot(cars$speed, cars$dist, 
+     main = "Stopping Distance vs. Speed",
+     xlab = "Speed (mph)", ylab = "Stopping Distance (ft)", pch = 19)
+lines(speed_seq, dist_pred_linear, col = "blue")  # Linear model
+lines(speed_seq, dist_pred_nonlinear, col = "red")  # Nonlinear model
+
+
+```
+
+__Part d: which is better?__
+
+Compare the linear and quadratic models fitted above.
+Which one describes the data better?
+What do you base that claim on?
+__Hint:__ consider comparing things like RSE, $R^2$ and comparing the residuals.
+A couple of sentences is plenty.
+
+```{r}
+
+plot(linear_model, main="Linear Model Residuals")
+plot(nonlinear_model, main="Quadratic Model Residuals")
+
+```
+
+***
+
+Comparing the RSE of these two models, the non-linear model achieves an ever so slightly better reconstruction of the responses.
+The residuals in the quadratic model display far more homoscedasticity than the linear model.
+
+***
+
+## Multiple regression: a preview of feature selection
+
+Let's return yet again to the `mtcars` data set that we've discussed in lecture.
+Recall that the columns of this data set are
+```{r}
+names(mtcars)
+```
+
+Suppose that our goal is to predict the miles per gallon (`mpg`) of cars using the other predictors.
+This exercise will get you some practice working with simple and multiple linear regression, and will preview some ideas that we will revisit in a few weeks when we discuss model selection.
+
+### Part a) comparing predictors
+
+Pick three of those predictors.
+For each one, fit a model of the form `y ~ 1 + x`.
+That is, for each of your predictors, fit a simple linear regression model that predicts `mpg` from *just* that predictor (and an intercept term).
+
+Look at the RSE for each of these three models.
+Which one fits the data best?
+
+```{r}
+
+model_wt <- lm(mpg ~ wt, data = mtcars)
+summary(model_wt)
+
+```
+
+```{r}
+
+model_hp <- lm(mpg ~ hp, data = mtcars)
+summary(model_hp)
+
+```
+
+```{r}
+
+model_disp <- lm(mpg ~ disp, data = mtcars)
+summary(model_disp)
+
+```
+
+ ***
+ 
+- Comparing these models, the wt predictor provides the best fit for predicting mpg, as it has the highest Multiple R-squared value and the lowest RSE, indicating both a higher proportion of explained variability and smaller average errors in prediction. While disp also presents a strong model with a considerable explanatory power, wt outperforms it slightly in terms of both fit and predictive accuracy. The hp model, despite its statistical significance, demonstrates lesser fit and predictive power compared to wt and disp.
+ 
+ ***
+
+### Part b) Combining features
+
+Now, from your three predictors in part (a) above, consider the three possible ways of choosing two of these three predictors.
+For each such pair, fit a multiple-regression model that predicts `mpg` using those two predictors.
+Then, compare the RSEs of those three models.
+Which does best?
+Does the best model include the predictor that did best in Part (a)?
+Are both predictors significant in all three models?
+
+```{r}
+
+model_wt_hp <- lm(mpg ~ wt + hp, data = mtcars)
+summary(model_wt_hp)
+
+```
+
+```{r}
+
+model_wt_disp <- lm(mpg ~ wt + disp, data = mtcars)
+summary(model_wt_disp)
+
+```
+
+```{r}
+
+model_hp_disp <- lm(mpg ~ hp + disp, data = mtcars)
+summary(model_hp_disp)
+
+```
+
+- Best Model Fit: The model combining wt and hp as predictors of mpg yields the best overall fit among the three models. This is indicated by the lowest RSE, which suggests that the predictions are, on average, closer to the actual mpg values.
+- Predictor Significance: In the best model (mpg ~ wt + hp), both predictors are statistically significant, reinforcing the importance of considering vehicle weight and horsepower together when predicting fuel efficiency.
+
+### Part c) Looking ahead
+
+Now, compare the performance of your two-predictor models in part (b) to the performance of your models in part (c).
+Unless something really weird happened, you should see that the two-predictor models outperform the single-variable models as measured by things like RSE and $R^2$.
+
+So we can trivially improve our model's accuracy by adding more predictors-- after all, more predictors will give our model more information to work with (indeed, we can make this far more precise with linear algebra, but that's for another class)!
+Verify this fact by fitting a multiple regression model on all three predictors in your models from Parts (a) and (b).
+Compare its RSE and $R^2$ to those of the models in Part (b).
+You should see that this three-predictor model improves upon all three models in Part (b).
+
+```{r}
+
+model_all <- lm(mpg ~ wt + hp + disp, data = mtcars)
+summary(model_all)
+
+```
+
+So adding more predictors will always improve our model.
+On the other hand, it doesn't seem quite fair-- adding more predictors to our model will *always* improve the reconstruction accuracy of our model (again, as measured by RSE or $R^2$, etc).
+Should we prefer a model with one predictor over a model with two predictors that has only slightly better prediction accuracy?
+How do we know when to stop adding predictors?
+That's the problem of *feature selection*, which we'll come back to in a few weeks.
+
+Use diagonstics within R to assess the regression assumptions on the model with 3 predictors. Are the residuals normally distributed? Is the variance of residuals independent of the predicted mpg value? Is the linearity assumption valid (is there a nonlinear pattern to the residuals)? Are there any extreme outliers among the residuals? 
+
+If any of the assumptions are violated, see if you can modify the model to correct this. Consider variable transformations.
+
+```{r}
+
+plot(model_all)
+
+```
+
+***
+ 
+- The model indicates that both wt (weight) and hp (horsepower) are significant predictors of mpg (miles per gallon), with p-values well below the 0.05 threshold. This suggests that as weight and horsepower increase, the fuel efficiency of the car tends to decrease. However, disp (displacement) does not seem to be a significant predictor in the presence of wt and hp, as indicated by its p-value of 0.92851.
+- The Multiple R-squared value of 0.8268 demonstrates that the model explains approximately 82.68% of the variance in mpg, which is a strong fit.
+ 
+***
+
+

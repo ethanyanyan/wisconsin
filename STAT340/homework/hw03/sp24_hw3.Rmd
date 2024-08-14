@@ -1,0 +1,488 @@
+---
+title: "Homework 3"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+## Problem 1. Random Geometry <small>(2pts each, 8pts total)</small>
+Use Monte Carlo simulation to estimate the following geometric properties of shapes and solids. Use the following facts:
+
+* The distance between $(x_1,y_1)$ and $(x_2,y_2)$ is $\sqrt{(x_2-x_1)^2+(y_2-y_1)^2}$
+* The coordinates of a point on a unit circle at angle $\theta$ is $(\cos\theta,\sin\theta)$
+* The area of a triangle with vertices $(x_i, y_i), i=1,2,3$ is $\frac12 \left|x_1(y_2 − y_3) + x_2(y_3 − y_1) + x_3(y_1 − y_2)\right|$
+
+a. What is the the average distance between two points in a box with side lengths 5, 10 and 20?
+
+> Side length 5
+
+```{r}
+
+get_dist_between_points <- function( x1, y1, x2, y2 ) {
+  return (sqrt((x2-x1)^2 + (y2-y1)^2))
+}
+
+NMC <- 10000
+results <- numeric(NMC)
+for( i in 1:NMC) {
+  # Generate 2 random points
+  x1 <- runif(1, 0, 5)
+  y1 <- runif(1, 0, 5)
+  x2 <- runif(1, 0, 5)
+  y2 <- runif(1, 0, 5)
+  # record dist
+  results[i] <- get_dist_between_points(x1,y1,x2,y2)
+}
+
+average_distance <- mean(results)
+average_distance
+
+```
+
+> Side length 10
+
+```{r}
+
+get_dist_between_points <- function( x1, y1, x2, y2 ) {
+  return (sqrt((x2-x1)^2 + (y2-y1)^2))
+}
+
+NMC <- 10000
+results <- numeric(NMC)
+for( i in 1:NMC) {
+  # Generate 2 random points
+  x1 <- runif(1, 0, 10)
+  y1 <- runif(1, 0, 10)
+  x2 <- runif(1, 0, 10)
+  y2 <- runif(1, 0, 10)
+  # record dist
+  results[i] <- get_dist_between_points(x1,y1,x2,y2)
+}
+
+average_distance <- mean(results)
+average_distance
+
+```
+
+> Side length 20
+
+```{r}
+
+get_dist_between_points <- function( x1, y1, x2, y2 ) {
+  return (sqrt((x2-x1)^2 + (y2-y1)^2))
+}
+
+NMC <- 10000
+results <- numeric(NMC)
+for( i in 1:NMC) {
+  # Generate 2 random points
+  x1 <- runif(1, 0, 20)
+  y1 <- runif(1, 0, 20)
+  x2 <- runif(1, 0, 20)
+  y2 <- runif(1, 0, 20)
+  # record dist
+  results[i] <- get_dist_between_points(x1,y1,x2,y2)
+}
+
+average_distance <- mean(results)
+average_distance
+
+```
+
+b. Three points at random are selected on a circle with radius 1. What is the average area of the triangle formed?
+
+```{r}
+
+get_triangle_area <- function( x1, y1, x2, y2, x3, y3 ) {
+  return (0.5 * abs(x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2)))
+}
+
+NMC <- 10000
+results <- numeric(NMC)
+for( i in 1:NMC) {
+  # Generate 3 random angles for points on circle
+  p1 <- runif(1, 0, 2*pi)
+  p2 <- runif(1, 0, 2*pi)
+  p3 <- runif(1, 0, 2*pi)
+  x1 <- cos(p1)
+  y1 <- sin(p1)
+  x2 <- cos(p2)
+  y2 <- sin(p2)
+  x3 <- cos(p3)
+  y3 <- sin(p3)
+  # record dist
+  results[i] <- get_triangle_area(x1,y1,x2,y2,x3,y3)
+}
+
+average_area <- mean(results)
+average_area
+
+```
+
+c. Three points at random are selected on a circle with radius 1. What is the average perimeter of the triangle formed?
+
+```{r}
+
+NMC <- 10000
+results <- numeric(NMC)
+for( i in 1:NMC) {
+  # Generate 3 random angles for points on circle
+  p1 <- runif(1, 0, 2*pi)
+  p2 <- runif(1, 0, 2*pi)
+  p3 <- runif(1, 0, 2*pi)
+  x1 <- cos(p1)
+  y1 <- sin(p1)
+  x2 <- cos(p2)
+  y2 <- sin(p2)
+  x3 <- cos(p3)
+  y3 <- sin(p3)
+  # record dist
+  results[i] <- (get_dist_between_points(x1,y1,x2,y2) + get_dist_between_points(x1,y1,x3,y3) + get_dist_between_points(x2,y2,x3,y3))
+}
+
+average_perimeter <- mean(results)
+average_perimeter
+
+```
+
+d. Let $(X,Y)$ be a random point, where both $X$ and $Y$ are independent, standard normal random variables. What is the average distance between $(X_1,Y_1)$ and $(X_2,Y_2)$?
+
+```{r}
+
+NMC <- 10000
+results <- numeric(NMC)
+for( i in 1:NMC) {
+  # Generate 2 random points using normal distribution
+  x1 <- rnorm(1, 0, 1)
+  y1 <- rnorm(1, 0, 1)
+  x2 <- rnorm(1, 0, 1)
+  y2 <- rnorm(1, 0, 1)
+  # record dist
+  results[i] <- get_dist_between_points(x1,y1,x2,y2)
+}
+
+average_dist <- mean(results)
+average_dist
+
+```
+
+
+## Problem 2: Law of Large Numbers <small>(1.5pts each, 7.5pts total)</small>
+
+For this next problem, we're going to empirically demonstrate the law of large numbers by simulating $N$ observations of a random variable, and show the convergence of the sample mean to the theoretical mean. Consider a Poisson variable $X$ with $\lambda=13$. It should hopefully be clear from the definition of the Poisson that $E(X)=\lambda=13$.
+
+a. Start by creating a data frame with 2 columns: a column named `n` that goes from 1, 2, ..., up to 1000; and a second column named `x` which is just 1000 repeated observations of a Poisson random variable with `lambda=13`.
+
+```{r}
+
+n <- 1:1000
+pois_obs <- rpois(1000, 13)
+df <- data.frame(n, x = pois_obs)
+
+head(df)
+
+```
+
+b. Next, create a third column named `xbar` that computes the "mean-thus-far" up to each row. E.g. if the first 3 values of `x` are 3, 1, 8, then the first 3 values of `xbar` should be 3, 2, 4, since 3=3, (3+1)/2=2, and (3+1+8)/3=4.
+   (Hint: use the `cumsum()` function to take the cumulative sum of the `x` column, then divide by the number of observations so far)
+   
+```{r}
+
+library(dplyr)
+
+df <- df %>%
+  mutate(cumulative = cumsum(x), xbar = cumulative/n)
+
+head(df)
+
+```   
+   
+c. Make a line plot showing xbar vs n. Add a red line at the theoretical mean. Comment on what you observe in the plot. Is this what you were expecting? (Don't forget to add proper labels/titles).
+
+```{r}
+
+library(ggplot2)
+
+ggplot(df, aes(x = n, y = xbar)) +
+  geom_line(color = "blue", size = 1) + 
+  geom_hline(yintercept = 13, color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Convergence of Sample Mean to Theoretical Mean of a Poisson Random Variable",
+       x = "n (Number of Observations)",
+       y = "Sample Mean (xbar)") +
+  theme_minimal() 
+
+```
+
+- Observation: The plot shows the sample mean (xbar) approaching the theoretical mean (λ = 13) as the number of observations (n) increases. Initially, the sample mean fluctuates more significantly but gets closer to the theoretical mean with increasing n. However, it does not get as close to the theoretical mean (red dashed line), as I would have hoped/expected it to be.
+- Expectation: I would expect a good illustration of the Law of Large Numbers, which states that as the number of trials increases, the sample mean will converge to the expected (theoretical) mean of the distribution. I would have expected the blue line (sample mean/xbar) to approach and get closer to the theoretical mean (red dashed line), than what is shown. Perhaps, not enough samples were drawn for it to really zone in on the theoretical mean.
+
+d. Now, increase the number of simulations to 100,000 and remake the plot, this time with a log-scale x-axis to better show the rate of convergence across the entire axis. Comment again on the output. Explain if this does or does not empirically agree with the law of large numbers.
+
+```{r}
+
+n2 <- 1:100000
+pois_obs2 <- rpois(100000, 13)
+df2 <- data.frame(n2, x = pois_obs2)
+
+df2 <- df2 %>%
+  mutate(cumulative = cumsum(x), xbar = cumulative/n2)
+
+ggplot(df2, aes(x = n2, y = xbar)) +
+  geom_line(color = "blue", size = 1) + 
+  geom_hline(yintercept = 13, color = "red", linetype = "dashed", size = 1) +
+  scale_x_log10() +
+  labs(title = "Convergence of Sample Mean to Theoretical Mean of a Poisson Random Variable",
+       x = "n (Number of Observations)",
+       y = "Sample Mean (xbar)") +
+  theme_minimal() 
+
+```
+
+- The plot this time around demonstrates the convergence of the sample mean to the theoretical mean (λ=13) for a Poisson distribution with a log-scale x-axis. This graph more accurately illustrates the Law of Large Numbers, showing that as the number of observations (n) increases, the sample mean (x̄) approaches the theoretical mean, as compared to 1000 samples. The log-scale x-axis allows us to more clearly observe the rate of convergence over a wide range of observation numbers. This empirical result strongly supports the Law of Large Numbers, indicating that with enough observations, the sample mean will approximate the expected value of the distribution.
+
+e. Repeat the above steps with a **different** random variable. You can copy your entire code chunk so far and just make the necessary modifications. Comment on this output too and whether or not it also agrees with your expectations. Make sure you CLEARLY define what the random variable you're using and clearly state what the expected value is (you may look this up on the internet if it's a new random variable we covered this week that we did not give the expectation formula for in class).
+
+- I will now repeat the above steps with the Normal Random Variable, with theoretical/expected mean to be 5, with standard deviation set to 2. The expected sample mean should converge to 5 as well
+
+```{r}
+
+n3 <- 1:100000
+norm_obs <- rnorm(100000, 5, 2)
+df3 <- data.frame(n3, x = norm_obs)
+
+df3 <- df3 %>%
+  mutate(cumulative = cumsum(x), xbar = cumulative/n3)
+
+ggplot(df3, aes(x = n3, y = xbar)) +
+  geom_line(color = "blue", size = 1) + 
+  geom_hline(yintercept = 5, color = "red", linetype = "dashed", size = 1) +
+  scale_x_log10() +
+  labs(title = "Convergence of Sample Mean to Theoretical Mean of a Normal Random Variable",
+       x = "n (Number of Observations)",
+       y = "Sample Mean (xbar)") +
+  theme_minimal() 
+
+```
+
+- The output of the plot demonstrating the convergence of the sample mean to the theoretical mean of a normal random variable with a mean of 5 and standard deviation of 2 clearly supports the Law of Large Numbers. As the number of observations increases, the plot shows that the sample mean converges towards the expected theoretical mean of 5, which aligns perfectly with our expectations. This empirical evidence reinforces our understanding of the Law of Large Numbers, confirming that with a sufficient number of observations, the sample mean will approximate the population mean. This outcome was anticipated and demonstrates the reliability of statistical principles in analyzing and understanding data distributions.
+
+
+
+## Problem 3: How Many Billies Can Fit? <small>(1.5pts each, 7.5pts total)</small>
+
+You have an empty wall That is exactly 241 cm wide (with walls on either side). You see that Billy the Bookcase (https://www.ikea.com/us/en/p/billy-bookcase-white-00263850/) is 80cm wide, so you should be able to fit 3 in this space.
+
+Suppose, however that The width of Billy is actually 80cm **on average**. In fact, the width is a normal random variable with a mean of 80 and a standard deviation of .5cm. (Please note - this is fictional! Ikea would never let quality control slip this bad). Use Monte Carlo simulation to answer the following questions:
+
+a. Estimate the expected value and standard deviation for the total width of the 3 Billys.
+
+```{r}
+
+NMC <- 10000
+results <- numeric(NMC)
+for( i in 1:NMC) {
+  # Generate 3 Billy obs 
+  x <- rnorm(3, 80, 0.5)
+  # record total width of 3 Billys
+  results[i] <- sum(x)
+}
+
+expected_mean <- mean(results)
+expected_mean
+expected_sd <- sd(results)
+expected_sd
+
+```
+
+b. If you buy 3 Billys, what is the probability that they will fit on your wall? Assume Billys are independent.
+
+```{r}
+
+NMC <- 10000
+fit_count <- 0 
+for (i in 1:NMC) {
+  # Generate the widths for 3 independent Billys
+  billy_widths <- rnorm(3, 80, 0.5)
+  total_width <- sum(billy_widths)
+  # Check if the total width is less than or equal to the wall width
+  if (total_width <= 241) {
+    fit_count <- fit_count + 1
+  }
+}
+
+probability_fit <- fit_count / NMC
+probability_fit
+
+
+```
+
+c. How wide of a space would you need to be 99% sure that 3 Billys would fit? *Hint: Use the `quantile` function in R*
+
+```{r}
+
+NMC <- 10000
+total_widths <- numeric(NMC)
+
+for (i in 1:NMC) {
+  # Generate the total width for 3 Billys in each simulation
+  total_widths[i] <- sum(rnorm(3, 80, 0.5))
+}
+
+width_for_99_percent <- quantile(total_widths, 0.99)
+width_for_99_percent
+
+
+```
+
+d. There are two other bookcases made by knockoff brand "Iqueeya": Goat and Gruff. Goat bookcase widths are normally distributed with a mean of 79cm and a standard deviation of .25cm, while Gruff bookcase widths are normally distributed with a mean of 81cm and a standard deviation of .6cm. What is the probability that a Billy, a Goat and a Gruff will fit on your wall? (Assume independence)
+
+```{r}
+
+NMC <- 10000
+fit_count <- 0 
+for (i in 1:NMC) {
+  # Generate the widths for 3 bookcases
+  billy_width <- rnorm(1, 80, 0.5)
+  goat_width <- rnorm(1, 79, 0.25)
+  gruff_width <- rnorm(1, 81, 0.6)
+  total_width <- billy_width + goat_width + gruff_width
+  # Check if the total width is less than or equal to the wall width
+  if (total_width <= 241) {
+    fit_count <- fit_count + 1
+  }
+}
+
+probability_fit <- fit_count / NMC
+probability_fit
+
+
+```
+
+e. Suppose you want the amount of gap between the bookcases and the side walls to be **as small as possible**. You assess how good of a fit you have by scoring: Buying 3 bookcases gives you a score of 0 if they don't fit, but otherwise a score of $$\frac{\text{total width}}{241}\times 100.$$ What combination of Billys, Goats and Gruffs gives you the highest *expected score*?
+
+```{r, echo=FALSE}
+# The scoring function is provided for you. 
+# You can feed it a single width or a vector of widths
+score <- function(width){
+  scores <- rep(0, length(width))
+  scores[width<=241] <- width[width<=241]/241*100 
+  return(mean(scores))
+}
+```
+
+
+```{r}
+
+NMC <- 10000
+scores <- numeric(NMC)
+
+specs <- list(
+  billy = list(mean = 80, sd = 0.5),
+  goat = list(mean = 79, sd = 0.25),
+  gruff = list(mean = 81, sd = 0.6)
+)
+
+combinations <- expand.grid(replicate(3, c("billy", "goat", "gruff"), simplify = FALSE))
+
+compute_width <- function(comb) {
+  sum(sapply(combo, function(bookcase) rnorm(1, specs[[bookcase]]$mean, specs[[bookcase]]$sd)))
+}
+
+max_score <- -Inf
+best_combo <- NULL
+
+for (i in 1:nrow(combinations)) {
+  combo <- combinations[i, ]
+  combo_scores <- numeric(NMC)
+  
+  for (j in 1:NMC) {
+    width <- compute_width(combo)
+    combo_scores[j] <- if (width <= 241) { width / 241 * 100 } else { 0 }
+  }
+  
+  avg_score <- mean(combo_scores)
+  
+  if (avg_score > max_score) {
+    max_score <- avg_score
+    best_combo <- combo
+  }
+}
+
+best_combo
+max_score
+
+```
+
+
+
+
+## Problem 4: Simulating a random variable <small>(7pts)</small>
+
+Define a random variable $X$ with density
+$$
+f_X(t) = \begin{cases}
+      \frac12\sin t &\mbox{ if } 0 \le t \le \pi \\
+      0 &\mbox{ otherwise. }
+      \end{cases}
+$$
+
+The probability density function (pdf) is visualized below.
+```{r, fig.width=5.7, fig.height=4, echo=FALSE}
+# here we define a *vectorized* function to evaluate the density of X
+pdf_x = function(x) {
+  # ifelse is like a function version of an if statement.
+  # We use it here to ensure that pdf_x can operate directly on vectors.
+  return(ifelse(0<=x & x<=pi , .5*sin(x) , 0 ))
+}
+
+# showing the PDF in a plot
+ggplot() + geom_function(fun=pdf_x, n=10001) + 
+  coord_fixed(ratio=2) + theme_minimal() + 
+  xlim(c(-.5,pi+.5)) + ylim(-.2,.7) + labs(x="x", y="f(x)")
+```
+
+This means that the cumulative distribution function is $$F_X(t)=\int_0^tf_X(u)du=\frac12-\frac{1}{2}\cos(t)$$
+for $0 \le t \le \pi$, (and $F_X(t)=0$ for $t<0$ and $F_X(t) = 1$ for $t \ge \pi$).
+
+a. (3 points) Find $F^{-1}(x)$, the inverse CDF. *Hint: In `R` the `arc-cosine` function is `acos()`.*
+
+- Given the CDF $F_X(t)=\frac12-\frac{1}{2}\cos(t)$ for $0 \le t \le \pi$, to find the inverse CDF, we solve for $t$ in terms of $F_X(t)$.
+- We want to find $t = F^{-1}(y)$, where $y$ is in the range $[0, 1]$. Given that $F_X(t)=y$, let's solve for $t$:
+  - $y=\frac12-\frac{1}{2}\cos(t)$
+- Rearranging the terms, we get:
+  - $cos(t)=1-2y$
+- Taking the inverse on both sides, we get:
+  - $t=cos^{-1}(1-2y)$
+- Thus, the statement for the inverse CDF is $F^{-1}(x) = \cos^{-1}(1-2y)$ 
+
+b. (4 points) Write a function `rx(n)` (like `rbinom`) to sample from this random variable, where `n` is the size of the sample to be drawn. Then, use your function to draw sample of size 1000 and plot a histogram of the output to verify the results make sense. 
+
+```{r}
+
+rx = function(n) {
+  random_y <- runif(n,0,1)
+  f_x = acos(1- 2 * random_y)
+  return(f_x)
+}
+
+# The histogram should look like the PDF we plotted above.
+
+hist(rx(1000), probability=TRUE, main = "Histogram of Samples with PDF Overlay (1000 samples)", xlab = "Value", ylab = "Density")
+lines(x=seq(0,pi,.01), y=pdf_x(seq(0,pi,.01)), col='red')
+
+```
+
+- Try 100000 to ensure the shape is correct
+
+```{r}
+
+hist(rx(100000), probability=TRUE, main = "Histogram of Samples with PDF Overlay (100000 samples)", xlab = "Value", ylab = "Density")
+lines(x=seq(0,pi,.01), y=pdf_x(seq(0,pi,.01)), col='red')
+
+```
+
+- As the histogram shape closely follows the red curve, we can verify that the rx(n) function is working as it should, appropriately sampling from this defined random variable.
+

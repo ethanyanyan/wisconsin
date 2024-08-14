@@ -1,0 +1,174 @@
+---
+title:  "STAT340 Discussion 5: Hypothesis Testing II"
+output: html_document
+author: "Will Brooker, Josh Fisher, Sujay Tata, Ethan Yan"
+---
+
+<style>
+table{width:50%!important;margin-left:auto!important;margin-right:auto!important;}
+ol[style*="decimal"]>li{margin-top:40px!important;}
+</style>
+
+<br/>
+
+## XKCD comic
+
+<center><a href="https://xkcd.com/892/"><img id="comic" src="https://imgs.xkcd.com/comics/null_hypothesis.png"></a></center>
+
+---
+
+This discussion material will explore the ways that test like the t-test that rely on model assumptions (e.g., normality) can sometimes go wrong when those model assumptions are not satisfied.
+
+You should do the exercises below in a small group.
+
+---
+
+## Fragility of the t-test
+
+In lecture, we discussed how *parametric tests* (i.e., tests that make specific assumptions about the distribution of our data) can be sensitive to the modeling assumptions made by the test.
+For example: the t-test assumes that our data is normally distributed (or is at least well-approximated by a normal).
+
+The Cauchy distribution looks a lot like the normal distribution, but it has "fatter tails", which essentially means that we are more likely to observe data far from the mean than we are in the normal distribution.
+You can read more about that [here](https://en.wikipedia.org/wiki/Fat-tailed_distribution) if you're curious, but it's not necessary for your understanding of the rest of this discussion.
+
+So let's see what happens when we have data that comes from the Cauchy distribution, but we apply the t-test to it anyway, violating the normality assumption that the t-test requires.
+
+First, we need a function for generating data from the Cauchy distribution for use in our experiment.
+
+Write a function `generate_Cauchydata` that takes two arguments: a positive integer `n` (encoding a number of observations) an a real number `location` (encoding a central location; default value should be `0`).
+Your function should return a vector containing `n` random values of the following variable: generate a value from a  Cauchy distribution with location parameter `location` and scale parameter 1.
+
+```{r}
+generate_Cauchydata <- function(n, location = 0) {
+  # Generate n iid draws from a  Cauchy distribution with scale 1 and given location
+  #hint: rcauchy
+  
+  return(rcauchy(n,location))
+  
+}
+```
+
+We'll use `generate_Cauchydata` to generate two samples, and then we'll use a t-test to assess whether or not those two groups have the same mean.
+
+Now, when we observe our data, we will want to apply a t-test to it, obtain a p-value, and accept or reject our null hypothesis that our two groups are "the same" based on how this p-value compares with our chosen level $\alpha$.
+
+As we discussed in lecture, when the null hypothesis is true, we should expect to (incorrectly) reject the null with probability $\alpha$.
+Let's see if this holds true when the assumptions of the t-distribution are violated.
+
+Write a Monte Carlo simulation to estimate the probability of a Type I error when we observe two samples, both of size $n=20$, from a Cauchy distribution location=10 and scale=1, and perform a two-sample Student's t-test (i.e., `var.equal = TRUE` in `t.test`) at level $\alpha = 0.05$.
+Your estimate should be based on at least 10,000 Monte Carlo samples.
+
+__Hint:__ the R function `t.test` will perform a t-test to compare two vectors. You'll want to write something like `t.test(sampleA, sampleB, var.equal = TRUE)` to perform a t-test under the setting where we assume that our two samples have the same variance (let's use that setting-- no need to further complicate things!).
+This function returns an object, among whose attributes is an attribute called `p.value`.
+This `p.value` attribute contains the p-value produced by our test.
+
+That is, to extract a p-value, you'll want to do something like
+
+```
+test_results <- t.test(sampleA, sampleB, var.equal = TRUE)
+pval <- test_results$p.value
+```
+
+Of course, if you want a bit of extra practice and/or bragging rights, implementing the t-statistic yourself is worth doing!
+
+```{r}
+NMC <- 10000
+alpha <- 0.05
+type1_errors <- 0
+p_values <- numeric(NMC)
+
+for (i in 1:NMC) {
+  sampleA <- generate_Cauchydata(20, 10)
+  sampleB <- generate_Cauchydata(20, 10)
+  test_results <- t.test(sampleA, sampleB, var.equal = TRUE)
+  pval <- test_results$p.value
+  p_values[i] <- pval
+  if (pval <= alpha) {
+    type1_errors <- type1_errors + 1
+  }
+}
+
+# Mean p value
+mean(p_values)
+
+# Calculate the estimated Type I error rate
+type1_error_rate <- type1_errors / NMC
+type1_error_rate
+
+```
+
+Is your result reasonably close to the "nominal" level of $\alpha=0.05$?
+Compare your results with those of your classmates-- after all, your Monte Carlo estimate is random, so perhaps you got (un)lucky.
+You should see that all or most of you obtained levels closer to $0.045$, rather than $0.05$.
+
+### t-test vs permutation
+
+Now, let's conduct the same experiment, this time using a permutation test instead of the t-test.
+Use the difference of means as a test statistic.
+You are free to copy-paste the permutation test code that we saw in lecture, or implement it from scratch yourself.
+
+__Hint:__ think carefully about how to set this up. You are actually going to do a kind of "nested" Monte Carlo.
+Each time you do a permutation test, you need to do Monte Carlo to estimate a p-value.
+And we want to conduct a large number of permutation tests to estimate how often we reject the null.
+So if we are using $M_{\text{permute}}$ random permutations in each permutation test, and we use $M_{\text{MC}}$ repetitions of our experiment, that's going to be $M_{\text{permute}} M_{\text{MC}}$ total permutations that our computer needs to generate.
+So be prepared to wait a minute or two for your computer to run everything!
+I recommend setting the number of Monte Carlo replicates to be something small (e.g., 100) to start, and adjust it up once you are confident that your code is working properly.
+
+__Step 1:__ implement a permutation test in the form of a function `permutation_test`, which takes two vectors and returns a p-value, estimated based on some number of random permutations (as mentioned above, it's best to start with this number set to be something reasonably small and increase it later). Be sure to perform a two-sided permutation test!
+
+```{r}
+
+permutation_test <- function(sampleA, sampleB, M_permute) {
+  observed_diff <- mean(sampleA) - mean(sampleB)
+  combined <- c(sampleA, sampleB)
+  more_extreme <- 0
+  
+  for (i in 1:M_permute) {
+    shuffled <- sample(combined)
+    newA <- shuffled[1:length(sampleA)]
+    newB <- shuffled[(length(sampleA) + 1):length(combined)]
+    new_diff <- mean(newA) - mean(newB)
+    if (abs(new_diff) >= abs(observed_diff)) {
+      more_extreme <- more_extreme + 1
+    }
+  }
+  
+  p_value <- more_extreme / M_permute
+  return(p_value)
+}
+
+
+```
+
+__Step 2:__ use our permutation test in a Monte Carlo simulation similar to the t-test one we used above.
+You are free to copy-paste 
+
+Now, run the MC simulation.
+
+```{r}
+
+NMC <- 10000 
+M_permute <- 100 
+alpha <- 0.05
+rejections <- 0
+
+for (i in 1:NMC) {
+  sampleA <- generate_Cauchydata(20, 10)
+  sampleB <- generate_Cauchydata(20, 10)
+  p_value <- permutation_test(sampleA, sampleB, M_permute)
+  if (p_value <= alpha) {
+    rejections <- rejections + 1
+  }
+}
+
+# Calculate the rejection rate
+rejection_rate <- rejections / NMC
+rejection_rate
+
+
+```
+
+On average, the permutation test will *always* have level $\alpha$-- it is not sensitive to departures from model assumptions the way the t-test is.
+Of course, the level that you estimate in your experiment above is random.
+Compare it with the rate estimated by your classmates.
+You should see that the estimated levels are all close to 0.05.

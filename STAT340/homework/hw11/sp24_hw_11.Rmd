@@ -1,0 +1,536 @@
+---
+title: "Homework 11"
+author: "Ethan Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem #1. Guided k-fold CV exercise <small>9pts</small>
+
+In this exercise, we will guide you through an exercise where you are asked to use k-fold cross validation to evaluate the performance of several models.
+
+For this exercise we will use the "Swiss Fertility and Socioeconomic Indicators (1888)" dataset from the `datasets` package, which is loaded below. (To view the help page, run `?datasets::swiss` in your console). We will be using `Fertility` as our response variable.
+
+```{r}
+swiss = datasets::swiss
+```
+
+
+### Part a) Understanding/visualizing data
+
+Read the help page and briefly "introduce" this dataset. Specifically, explain where the data comes from, what variables it contains, and why should people care about the dataset.
+
+- The "Swiss Fertility and Socioeconomic Indicators (1888)" dataset provides standardized fertility measures and various socio-economic indicators for each of 47 French-speaking provinces of Switzerland around the year 1888. This dataset is a snapshot from a pivotal era known as the demographic transition, a period when fertility rates started to decline from the high levels typically seen in underdeveloped countries.
+
+- Variables in the Dataset:
+  - Fertility: Common standardized fertility measure.
+  - Agriculture: Percentage of males involved in agriculture as an occupation.
+  - Examination: Percentage of draftees receiving the highest mark on the army examination.
+  - Education: Percentage of education beyond primary school for draftees.
+  - Catholic: Percentage of the population that is Catholic (as opposed to Protestant).
+  - Infant.Mortality: Percentage of live births who live less than one year.
+  
+- This dataset is historically significant as it captures socio-economic factors related to fertility during a period of significant change, providing insights into how factors such as education, religion, and infant mortality rates may influence population growth dynamics.
+
+
+Produce one or some visualizations of the data. Do your best here to try to use your plots to help your viewer best understand the structure and patterns of this dataset. Choose your plots carefully and briefly explain what each plot tells you about the data.
+
+```{r}
+
+library(ggplot2)
+ggplot(swiss, aes(x=Education, y=Fertility)) +
+  geom_point(aes(color=Catholic), alpha=0.6) +
+  geom_smooth(method="lm", color="blue") +
+  scale_color_gradient(low="blue", high="red") +
+  labs(title="Fertility vs. Education",
+       subtitle="Colored by percentage of Catholics",
+       x="Education (%)",
+       y="Fertility") +
+  theme_minimal()
+
+
+```
+
+- This plot illustrates the relationship between Fertility and Education, with points colored based on the Catholic variable. The regression line helps in understanding the general trend. The coloring by Catholic percentage may show how religion intersects with education to impact fertility rates.
+
+- Higher Education, Lower Fertility: This trend aligns with demographic theories that suggest higher educational attainment is often associated with lower fertility rates. Educated individuals may have better knowledge and access to family planning resources, may prioritize career advancement, and typically have children later in life.
+- Lower Education, Higher Fertility: Conversely, lower education levels often correlate with higher fertility rates. This may be due to limited access to contraceptives, less sexual health education, and cultural norms favoring larger families.
+- Influence of Catholicism: The fact that areas with lower education and higher fertility rates have a higher percentage of Catholics could reflect cultural or religious influences on family size. 
+
+### Part b) Starting with basic lm
+
+Compare a model with all predictors with no interactions with 2 other models of YOUR choice. Fit all 3 models, show their summary outputs, and briefly comment on which one you think might perform the best when used for future predictions and why.
+
+```{r}
+
+full_model <- lm(Fertility ~ ., data = swiss)
+reduced_model <- lm(Fertility ~ Education + Catholic + Infant.Mortality + Agriculture, data = swiss)
+interaction_model <- lm(Fertility ~ Education * Catholic + Agriculture + Examination, data = swiss)
+
+summary(full_model)
+summary(reduced_model)
+summary(interaction_model)
+
+```
+
+
+- Best Model for Future Predictions
+  - The Reduced Model appears to offer the best balance between complexity and performance. It retains almost the same explanatory power and predictive accuracy as the Full Model but is simpler and excludes the non-significant Examination predictor.
+  - The Full Model does not show a substantial improvement over the Reduced Model that would justify the inclusion of additional predictors.
+  - The Interaction Model does not enhance performance sufficiently to warrant its additional complexity, especially given the non-significance of the interaction term.
+  
+- For future predictions and applications, the Reduced Model is recommended. It provides a robust model with significant predictors while avoiding overfitting and maintaining model simplicity, which is crucial for interpretation and practical application.
+
+### Part c) Estimating MSE using CV
+
+Now, we are going to actually estimate the MSE of each model with K-fold cross validation. First we're going to set a seed and import the `caret` package (it should be already installed since it's a prerequisite for many other packages, but if it's not for some reason, you can install it with `install.packages("caret")`)
+
+```{r}
+set.seed(1)
+library(caret)
+```
+
+Next, use the following chunk, which already has `method` set to `lm`, `data` set to the `swiss` data set, and validation method set to use 5-fold CV, to estimate the MSE of each of your models. All you need to do is add in a formula for your model and repeat for all 3 models you have.
+
+```{r,error=T}
+
+set.seed(1)
+
+full_model_cv <- train(Fertility ~ ., method="lm", data=swiss,
+                       trControl = trainControl(method="cv", number=5))
+print(full_model_cv)
+
+
+reduced_model_cv <- train(Fertility ~ Education + Catholic + Infant.Mortality + Agriculture,
+                          method="lm", data=swiss,
+                          trControl = trainControl(method="cv", number=5))
+print(reduced_model_cv)
+
+
+interaction_model_cv <- train(Fertility ~ Education * Catholic + Agriculture + Examination,
+                              method="lm", data=swiss,
+                              trControl = trainControl(method="cv", number=5))
+print(interaction_model_cv)
+
+```
+
+Once you have your models fitted, use `print( )` to show the summary statistics for each model. Report the RMSE for each model, which is the square root of the MSE. Which of these models performs the best? Which performed the worst? Do these results agree with your expectations?
+
+- The Reduced Model performs the best in terms of RMSE and R-squared among the three models. It has the lowest RMSE (7.557) which indicates the smallest average prediction error in the same units as the response variable (Fertility). Additionally, it has the highest R-squared (0.701), suggesting that it explains approximately 70.1% of the variance in Fertility, which is the highest among the three models.
+
+- The Interaction Model performs the worst, with the highest RMSE (8.332) and the lowest R-squared (0.561). This suggests that including the interaction between Education and Catholic, along with Agriculture and Examination, may not be beneficial for this dataset, as it introduces complexity without a corresponding increase in explanatory power or prediction accuracy.
+
+- The results agree with the initial expectations where the Reduced Model was hypothesized to perform well. It effectively captures the essential features without overfitting, which is critical for practical applications.
+
+
+Bonus: repeat the above step, using `trControl = trainControl(method="repeatedcv", number=5, repeats=3)` which repeats each CV analysis 3times and averages out each run to get a more stable estimate of the MSE. Compare the results with the unrepeated MSE estimates. How do they compare?
+
+```{r}
+
+# Setting control with repeated CV
+repeated_cv_controls <- trainControl(method="repeatedcv", number=5, repeats=3)
+
+
+full_model_repeated_cv <- train(Fertility ~ ., method="lm", data=swiss,
+                                trControl = repeated_cv_controls)
+print(full_model_repeated_cv)
+
+
+reduced_model_repeated_cv <- train(Fertility ~ Education + Catholic + Infant.Mortality + Agriculture,
+                                   method="lm", data=swiss,
+                                   trControl = repeated_cv_controls)
+print(reduced_model_repeated_cv)
+
+
+interaction_model_repeated_cv <- train(Fertility ~ Education * Catholic + Agriculture + Examination,
+                                       method="lm", data=swiss,
+                                       trControl = repeated_cv_controls)
+print(interaction_model_repeated_cv)
+
+
+```
+
+- The Reduced Model is still the best performing model with the lowest RMSE and higher Rsquared, indicating the smallest average prediction error and explaining the highest amount of variance in Fertility.
+- It is crucial to note that in the repeated CV analysis, the RMSE values are lower and Rsquared values are higher than that of the same model in the unrepeated estimates, this indicates a more stable and reliable estimate of the model's performance due to averaging over multiple splits.
+
+## Problem #2: More cars!  <small>4pts</small>
+
+This `Auto` dataset, in the `Auto.csv` file contains measurements on over 300 cars. In this problem you will look at the effect of sample size and over-fitting. First load the data.
+
+```{r}
+Auto <- read.csv("Auto.csv", stringsAsFactors = TRUE)
+```
+
+The dataset contains the response variable `mpg` and 7 predictor variables:
+
+* `cylinders`  - the number of engine cylinders
+* `displacement` - engine displacement
+* `horsepower` 
+* `weight`
+* `acceleration`
+* `year`
+* `origin` - there are Asian, US and European cars; indicator variables have been added to the dataset for European and US cars.
+
+The following function pulls the model formula out of the reg subsets object. It will be used later in the code. Be sure to run this chunk to put the function into the environment.
+```{r}
+# id: model id
+# object: regsubsets object
+# data: data used to fit regsubsets
+# outcome: outcome variable
+get_model_formula <- function(id, object, outcome){
+  # get models data
+  models <- summary(object)$which[id,-1]
+  # Get outcome variable
+  #form <- as.formula(object$call[[2]])
+  #outcome <- all.vars(form)[1]
+  # Get model predictors
+  predictors <- names(which(models == TRUE))
+  predictors <- paste(predictors, collapse = "+")
+  # Build model formula
+  as.formula(paste0(outcome, "~", predictors))
+}  
+```
+
+This function, performs best subset model selection on a dataset with a specified response variable. It returns a list of models - the models with the lowest RSS for each model size from 1 to p. It will be used below. (Note: because of the origin variable a modification was made to only fit models up to size 7, not 8. This is because for a small sample size if there are not Asian, US and European cars the model fit will not work if all variables are included due to linear dependence among predictors)
+```{r}
+library(leaps)
+getModels <- function (dataset, responseVar){
+  models <- regsubsets(reformulate(".",responseVar), data = Auto.subset, nvmax = ncol(dataset)-2);
+  modelList <- list("formula")
+  nModels <- length(summary(models))-1
+  for(i in 1:nModels){
+    modelList[[i]] <- get_model_formula(i, models, responseVar)
+  }
+  return(modelList)  
+}
+
+```
+
+Now we will run some code to answer the questions below. We will simulate having a small sample of cars to work with and fit the linear model. You will notice that in order to average over errors the entire simulation is performed `NMC=50` times. You may modify this if you wish. The primary line you will modify is where the sample size is set.
+
+```{r, warning=FALSE}
+sampleSize <- 200  #You should edit this number
+
+NMC <- 50 #number of replications of this simulation
+nFolds <- 5  #k=5 for 5-fold CV
+nModels <- 7 # we will look at a maximum model size (# predictors) of 7.
+
+errors <- data.frame('fold' = as.factor(rep(1:nFolds, nModels*NMC)),
+                     'rep' = rep(1:NMC, each=nFolds*nModels),
+                     'model' = rep(1:nModels, rep(nFolds, nModels)),
+                     'mse' = rep(0, nModels*nFolds*NMC))
+for(k in 1:NMC){
+  Auto.subset <- Auto[sample(nrow(Auto), sampleSize),]
+  modelList <- getModels(Auto.subset, "mpg")
+  
+  #Cross Validation
+  folds <- split(sample(1:nrow(Auto.subset)), as.factor(1:nFolds))
+  for(i in 1:nFolds){
+    validation <- Auto.subset[folds[[i]],]
+    training <- Auto.subset[-folds[[i]],]
+    for(j in 1:nModels){
+      fit <- lm(modelList[[j]], data=training)
+      predictions <- predict(fit, newdata = validation)
+      errors[errors$rep==k & errors$fold==i  & errors$model ==j, 'mse'] = mean((predictions-validation$mpg)^2)
+    }
+  }
+}
+avg <- aggregate(.~model, data=errors, FUN="mean")
+plot(y=sqrt(avg$mse), x=avg$model, xlab="model", ylab="root mean square error", type="l", main="Comparison of Model Error")
+```
+
+a. If the sample size is 15, what is the size of the preferred model?
+
+- The preferred model size is 2 given that it has the lowest RMSE, of approximately 3.9.
+
+
+b. If the sample size is larger, say 60, what is the size of the preferred model?
+
+- For sample size of 60, the preferred model size is 3 as it has the lowest RMSE of approximately 3.55.
+
+
+c. Now consider if you have a sample of size 200. Does your preferred model change?
+
+- Yes my preferred model seems to be 5, though model sizes of 3,4,5 have similar RMSE of roughly 3.35.
+
+
+d. What is your general conclusion after looking at the effect of sample size on model size and model error?
+
+- Impact of Sample Size on Model Complexity: Larger sample sizes generally support more complex models. This is because more data provides a better foundation for estimating more parameters without falling into the trap of overfitting.
+- Model Complexity and Overfitting: With smaller sample sizes, simpler models are preferable as they tend to generalize better on unseen data. Overfitting is a critical concern with small samples because models tend to fit noise rather than the underlying relationship.
+- Optimal Model Size: The optimal model size increases with the sample size but up to a point. This optimal point is where the increase in sample size and the complexity of the model balance the bias-variance tradeoff effectively.
+
+
+### Problem #3: Optimal K  <small>8pts; 2pts each</small>
+
+Suppose the variable $Y=4 + 5X_1 + 8X_2 + \epsilon$ where $\epsilon \sim N(0, 2^2)$. Pretend this is the true model, but we don't know that - we are going to collect a random sample of size 40 and fit a linear model. We want to estimate the model error using $K-fold$ cross validation. In this problem we will figure out the optimal number of folds to get the best estimate of the model error $E(Y_{n+1}-\hat{Y}_{n+1})^2$.
+
+We have to make a few assumptions to do this estimation. Let's suppose that $X_1 \sim N(3, 1^2)$ and $X_2 \sim N(1, .5^2)$. You can use the following function to simulate data:
+
+```{r}
+simulate.data <- function(n=40){
+  X1 <- rnorm(n, 3, 1)
+  X2 <- rnorm(n, 1, .5)
+  eps <- rnorm(n, 0, 2)
+  Y <- 4 + 5*X1 + 8*X2 + eps
+  return(data.frame(Y,X1,X2))
+}
+```
+
+### a. Estimate model error using Monte Carlo
+
+Use Monte Carlo estimation to estimate the MSE of a linear model fit to a sample size of 40 using both predictors. On each MC repetition you should:
+
+  i. generate a sample data set of size 40
+  ii. fit a linear model using both X1 and X2 as predictors
+  iii. simulate 1000 (or more) out of sample data points
+  iv. calculate the square root of average squared error on the out of sample data points.
+
+
+```{r}
+NMC <- 1000
+nUnseen <- 1000
+Ehat <- numeric(NMC) #an empty vector to store estimated 
+
+for(i in 1:NMC){
+  # generate a sample of size 40
+  sample <- simulate.data()
+    
+  #fit the linear model with X1 and X2 as predictors
+  model <- lm(Y ~ X1 + X2, data = sample)
+  
+  #simulate unseen data
+  unseen_data <- simulate.data(n = nUnseen)
+  
+  #calculate the square root of the average squared error on the out of sample data points
+  predictions <- predict(model, newdata = unseen_data)
+  
+  #store this in Ehat[i]
+  Ehat[i] <- sqrt(mean((unseen_data$Y - predictions)^2))
+
+}
+(modelError <- mean(Ehat))
+```
+
+### b. Estimating MSE using CV
+Now we imagine we don't know the true model error, but instead we want to estimate it with K-fold validation. The following function can be used to perform K-fold validation to estimate root mean squared error
+
+```{r, warning=FALSE}
+kfoldCV <- function(K, formula, dataset, responseVar){
+  #idx is a shuffled vector of row numbers
+  idx <- sample(1:nrow(dataset))
+  #folds partitions the row indices
+  folds <- suppressWarnings(split(idx, as.factor(1:K)))
+  #an empty vector to hold estimated errors
+  errors <- vector("numeric", K) 
+  for(k in 1:K){
+    #split the data into training and testing sets
+    training <- dataset[-folds[[k]],]
+    testing <- dataset[folds[[k]],]
+    #go through each model and estimate MSE
+    #fit the model to the training data
+    fit <- lm(formula = formula, data=training)
+    #calculate the sqrt of average squared error on the testing data
+    errors[k] <- sqrt (mean((predict(fit, newdata=testing)-testing[,responseVar])^2))
+  }
+  return(mean(errors))
+}
+```
+
+The following code runs an estimation simulation to help you see what happens to the estimate of model error as the number of folds increases. 
+We will consider 2,3,4,5,6,8,10,15,20,30 and 40-fold CV.
+
+```{r}
+NMC <- 50
+Ks <- c(2,3,4,5,6,8,10,15,20,30,40)
+nK <- length(Ks)
+formula <- reformulate(c("X1","X2"),"Y")
+
+errors <- data.frame('replicate'=rep(1:NMC, each=nK),
+                     'k' = rep(Ks, NMC),
+                     'error' = rep(0, NMC*nK))
+for(i in 1:NMC){
+  myData <- simulate.data(40)
+  for(k in Ks){
+    errors[errors$replicate==i & errors$k==k, 'error'] <- kfoldCV(k, formula, myData, 'Y')
+  }
+}
+averageErrors <- aggregate(error ~k, data=errors, FUN="mean")
+
+plot(error ~ k, data=errors, col=rgb(0,0,0,.5))
+lines(error ~ k, data=averageErrors, col="red", lwd=3)
+abline(h=modelError)
+```
+
+From the code and plot generated answer the following questions:
+
+i. What happens to the estimate of model error as the number of folds increases?
+
+- As the number of folds increases, the estimate of the model error generally decreases. This can be attributed to each test set being smaller and the training set being larger, thus making the model training more robust and the error estimate potentially lower.
+
+
+ii. Knowing the true model error, what number of folds seems to give the most unbiased estimate of model error?
+
+- With a known true model error (modelError), lower values of K (particularly 2 or 3) seem to provide estimates closer to this true error. This indicates that very small values of K might yield a more unbiased estimate of the model error under certain conditions, though it typically introduces higher variance in the error estimates across different folds.
+
+
+iii. Besides the estimate being unbiased, what other consideration would you want to make when you consider the number of folds to choose?
+
+- Computational Efficiency: More folds mean more models to train, which increases computational time and resources. Especially for large datasets or complex models, computational considerations can limit the feasible number of folds.
+- Training Data Utilization: Higher K values use a larger portion of the data for training (e.g., K=10 uses 90% of the data for training in each iteration), which can lead to a better-trained model and a more reliable error estimate.
+- Bias-Variance Trade-off:
+  - Bias: Lower K values (like K=2, K=3) can underestimate the model's error because each test fold is quite large, and the training data are not sufficiently representative of the entire dataset.
+  - Variance: Higher K values can lead to higher variance in the model performance on different test sets because each test set consists of fewer samples, making the error estimate highly sensitive to the test samples chosen.
+
+
+
+### c. The tradeoff
+Finally look at this plot:
+```{r}
+vars <- aggregate(error ~k, data=errors, FUN="var")$error
+bias2 <- (averageErrors$error-2.07)^2
+errors$errorsq <- (errors$error-2.07)^2
+mse <- aggregate(errorsq ~ k, data=errors, FUN="mean")$errorsq
+
+plot(x=Ks, y=vars, ylim=c(0,max(mse)), type="l", ylab="")
+lines(x=Ks, y=bias2, lty=2, col="blue")
+lines(x=Ks, y=mse, lty=3, lwd=2, col="red")
+```
+
+i. What does the solid black line represent? What pattern/trend do you see?
+
+- The solid black line represents the variance of the estimated errors across different cross-validation folds for each K. The variance generally decreases as K increases. This is typical because with higher K, each fold is testing on a smaller sample of the data, making the training sets more similar to each other and thus reducing the variability in the model predictions across different fold
+
+ii. What does the dotted blue line represent? What pattern/trend do you observe?
+
+- The dotted blue line represents the square of the bias for each K, which is the squared difference between the average estimated error and the true error. Bias squared increases as K increases. Higher K values tend to have models that are too tailored to the training data (less biased on training data), but perform worse on average when generalizing (higher bias on unseen data).
+
+iii. What does the dotted red line represent? What pattern/trend do you observe?
+
+- The dotted red line represents the average of the squared differences between the estimated errors and the true error, calculated across all Monte Carlo simulations for each K.  The MSE first decreases as K increases from very low values and then starts increasing after a certain point.
+
+### d. Wrapping it up
+Finally after all of this analysis, what number of folds would you conclude provides the best estimate of model error?
+
+- I would conclude that 8 folds provide the best balance. 
+  - Lowest Variance: At 8 folds, the variance of the model error estimates is relatively low, suggesting that the error estimates across different splits of the data are consistent. Lower variance in error estimates indicates that the model is not overly sensitive to the specific subsets of data used for training versus testing.
+  - Acceptable Bias: The bias squared at 8 folds, while not the absolute lowest, is still reasonably low. This implies that the error estimate is not significantly biased upwards or downwards, making it a trustworthy reflection of the model's likely performance on new data.
+  - Lowest MSE: The MSE, which incorporates both bias squared and variance, is at or near its minimum at 8 folds. This metric is crucial because it reflects the total error in the model's predictions, considering both how much the predictions vary (variance) and how far they are, on average, from the true values (bias).
+
+
+
+## Problem #4. Variable selection with `Carseats` <small>9pts (4 and 5)</small>
+
+This question should be answered using the `Carseats` dataset from the `ISLR` package. If you do not have it, make sure to install it.
+
+```{r}
+library(ISLR)
+
+Carseats = ISLR::Carseats
+
+# you should read the help page by running ?Carseats
+# we can also peek at the data frame before using it
+str(Carseats)
+head(Carseats)
+```
+
+
+### Part a) Visualizing/fitting
+
+First, make some visualizations of the dataset to help set the stage for the rest of the analysis. Try to pick plots to show that are interesting informative.
+
+```{r}
+
+ggplot(Carseats, aes(x=Price, y=Sales)) +
+  geom_point(aes(color=Urban, shape=ShelveLoc), alpha=0.5) +
+  geom_smooth(method="lm") +
+  labs(title="Sales vs Price", x="Price", y="Sales")
+
+ggplot(Carseats, aes(x=Advertising, y=Sales)) +
+  geom_point(aes(color=Urban, shape=ShelveLoc), alpha=0.5) +
+  geom_smooth(method="lm") +
+  labs(title="Sales vs Advertising", x="Advertising", y="Sales")
+
+ggplot(Carseats, aes(x=ShelveLoc, y=Sales)) +
+  geom_boxplot(aes(fill=ShelveLoc)) +
+  labs(title="Sales across Shelf Locations", x="Shelf Location", y="Sales")
+
+```
+
+Using some variable selection method (stepwise, LASSO, ridge, or just manually comparing a preselected of models using their MSEs), choose a set of predictors to use to predict `Sales`. Try to find the best model that you can that explains the data well and doesn't have useless predictors. Explain the choices you made and show the final model.
+
+```{r}
+
+library(MASS)
+
+full_model <- lm(Sales ~ . + Price:ShelveLoc + Advertising:Urban, data=Carseats)
+summary(full_model)
+
+step_model <- stepAIC(full_model, direction="both")
+summary(step_model)
+
+final_model <- lm(Sales ~ Price + Income + ShelveLoc + CompPrice + Advertising + Age, data=Carseats)
+summary(final_model)
+
+```
+
+- Model Coefficients and Significance:
+  - Price: Highly significant with a negative coefficient, suggesting that higher prices negatively affect sales.
+  - Income: Positive coefficient, indicating higher income levels correlate with higher sales.
+  - ShelveLoc (Good and Medium): Significant positive coefficients for good and medium shelf locations indicate that these locations correlate with higher sales compared to the baseline (bad location).
+  - CompPrice: Positive coefficient, suggesting that competitive pricing (perhaps indicating a more attractive market) correlates with higher sales.
+  - Advertising: Positive coefficient, affirming the expected positive impact of advertising expenditure on sales.
+  - Age: Negative coefficient, suggesting that products aimed at older demographics might see lower sales.
+  
+- Insights from the Model
+  - Interaction Terms: Initially included interaction terms were not found to be significant. 
+  - Model Efficiency and Effectiveness: The final model achieves a high $R^2$ of 0.872, indicating that approximately 87.2% of the variance in Sales is explained by the model. 
+  
+
+### Part b) Interpreting/assessing model
+
+According to your chosen model, Which predictors appear to be the most important or significant in predicting sales? Provide an interpretation of each coefficient in your model. Be careful: some of the variables in the model are qualitative!
+
+```{r}
+
+summary(final_model)
+
+```
+
+- Coefficient Interpretation
+  - Intercept (Intercept): The baseline sales when all other predictors are zero (which isn't practically plausible for all predictors but gives a starting point).
+  - Price (-0.095319): For each unit increase in price, sales decrease by 0.095 units (thousand car seats per unit), holding all other factors constant. This negative relationship suggests that higher prices may deter purchases.
+  - Income (0.015785): For every increase in unit income (thousand dollars), sales increase by 0.015785 units, holding all other factors constant. This positive relationship suggests that higher prices may attract purchases.
+  - Shelve Location (ShelveLoc):
+    - Good (ShelveLocGood): 4.84. Being in a good shelf location increases sales by 4.84 units compared to a bad location, holding other factors constant.
+    - Medium (ShelveLocMedium): 1.95. A medium shelf location increases sales by 1.95 units compared to a bad location.
+  - CompPrice (0.093.): Suggests that for each unit increase in the competitor’s price, sales of the product increase by 0.093 units. This could indicate that as competitors' products become more expensive, this product becomes more appealing.
+  - Advertising (0.116.): For each additional thousand dollars spent on advertising, sales are expected to increase by 0.116 units. This implies a positive effect of advertising on sales.
+  - Age (-0.046): A one-year increase in the average age of the local population decreases sales by 0.046 units. This may reflect preferences for this product among younger consumers.
+
+Estimate the out of sample MSE of your model and check any assumptions you made during your model fitting process. Discuss any potential model violations. How satisfied are you with your final model?
+
+```{r}
+
+train_indices <- sample(1:nrow(Carseats), 0.7 * nrow(Carseats))
+train_data <- Carseats[train_indices, ]
+test_data <- Carseats[-train_indices, ]
+
+fitted_model <- lm(Sales ~ Price + Income + ShelveLoc + CompPrice + Advertising + Age, data=train_data)
+
+predictions <- predict(fitted_model, newdata=test_data)
+
+mse <- mean((test_data$Sales - predictions)^2)
+mse
+
+par(mfrow=c(2,2))
+plot(fitted_model)
+
+```
+
+- Redisuals vs Fitted Plot: The residuals appear to fluctuate randomly around the horizontal line at zero, which suggests that the assumption of linearity and homoscedasticity (constant variance across the range of predictions) might be reasonable.
+- Normal Q-Q Plot: The points roughly follow the y=x line, clustering near the line through the majority of their range. This plot indicates that the residuals are approximately normally distributed, which is a crucial assumption for the validity of the regression inference.
+

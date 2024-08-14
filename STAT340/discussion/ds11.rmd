@@ -1,0 +1,108 @@
+---
+title: "K-Fold Cross Validation"
+author: "Will Brooker, Josh Fisher, Sujay Tata, Ethan Yan"
+date: "23 Apr 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## K-Fold Cross Validation for Logistic Regression
+
+In this discussion we will fit a logistic model using K-fold validation. The dataset contains HR data from a company including four predictors of job satisfaction as well as the response variable indicating whether the employee stayed with the company or left.
+
+
+```{r}
+df <- read.csv("PredictiveAnalytics.csv")
+```
+
+The data frame (df) has 1000 cases and the following 5 variables: ID, Turnover, JS, OC, TI, and NAff. ID is the unique employee identifier variable. Imagine that these data were collected as part of a turnover study within an organization to determine the drivers/predictors of turnover based on a sample of employees who stayed and left during the past year. The variables JS, OC, TI, and Naff were collected as part of an annual survey and were later joined with the Turnover variable. Survey respondents rated each survey item using a 7-point response scale, ranging from strongly disagree (0) to strongly agree (6). JS contains the average of each employee’s responses to 10 job satisfaction items. OC contains the average of each employee’s responses to 7 organizational commitment items. TI contains the average of each employee’s responses to 3 turnover intentions items, where higher scores indicate higher levels of turnover intentions. Naff contains the average of each employee’s responses to 10 negative affectivity items. Turnover is a variable that indicates whether these individuals left the organization during the prior year, with 1 = quit and 0 = stayed.
+
+We will perform 10-fold cross validation to a logistic model predicting Turnover from the variables JS, OC, TI and Naff. The split function as used in lecture will provide us with k random partitions of the indices 1 through 1000
+```{r}
+n <- nrow(df)
+K <- 10
+Kfolds <- split( sample(1:n, n,replace=FALSE), as.factor(1:K));
+```
+
+
+Because split creates a list of vectors, to access the indices to leave out on each model fit you have to use double bracket indexing. See the difference between Kfolds[1] and Kfolds[[1]].
+```{r}
+
+Kfolds[1]
+Kfolds[[1]]
+
+```
+
+
+Create a data frame called results which will record the accuracy of each model. You could also just hold the accuracies in a vector. But it's good practice to allocate a data object to hold your results.
+```{r}
+
+results <- numeric(K)
+
+```
+
+
+Now you will create a loop - for each iteration of the loop, from 1 to K, you will
+  a. pull out the training Data
+  b. pull out the testing data
+  c. fit the logistic model to the training data
+  d. predict for the testing data, and calculate accuracy
+```{r}
+for(i in 1:K){
+  # select the training data by removing rows from the `df` data frame.
+  # recall that a negative sign omits row indices
+  trainData <- df[-Kfolds[[i]], ]
+    
+  # select the testing data by only taking the certain rows from the `df` data frame.
+  testData <- df[Kfolds[[i]], ]
+  
+  
+  #fit the logistic model. 
+  # remember to use the glm function, and family="binomial". Also remembe to use the training data.
+  # The response variable is Turnover, and the four predictors are JS, OC, TI and Naff
+  model <- glm(Turnover ~ JS + OC + TI + Naff, data=trainData, family="binomial")
+  
+  
+  #Finally make predictions for the testing data.
+  #remember that you want type="response" to have a value between 0 and 1.
+  #Also simply check whether the prediction > .5
+  predictions <- predict(model, testData, type="response")
+  predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+  
+  #The accuracy is what proportion of predictions match the actual value of Turnover
+  #You can use == to compare the prediction to the value of Turnoever, since TRUE has the numerical value of 1 in R.
+  #And you can use the mean function to calculate what proportion of these comparisons are equal; This is the accuracy.
+  accuracy <- mean(predicted_classes == testData$Turnover)
+  results[i] <- accuracy
+  
+}
+
+```
+Take the average of all of the accuracies. This is our k-fold cross validated estimate for out-of-sample model accuracy.
+```{r}
+
+results_df <- data.frame(Fold = 1:K, Accuracy = results)
+average_accuracy <- mean(results)
+average_accuracy
+
+```
+
+Let's compare that to in-sample accuracy. Let's fit the model one more time on the entire dataset, and calculate accuracy.
+
+```{r}
+
+full_model <- glm(Turnover ~ JS + OC + TI + Naff, data = df, family = "binomial")
+
+full_predictions <- predict(full_model, df, type = "response")
+full_predicted_classes <- ifelse(full_predictions > 0.5, 1, 0)
+
+in_sample_accuracy <- mean(full_predicted_classes == df$Turnover)
+in_sample_accuracy
+
+```
+Both accuracies are likely very similar, but one might be slightly lower than the other. Can you explain why?
+
+- The in-sample accuracy typically is higher than the out-of-sample accuracy because the model is evaluated on the same data it was trained on. In contrast, k-fold cross-validation provides a more generalized measure of model performance across different subsets of data, simulating how the model would perform with unseen data. This makes k-fold cross-validation a more robust estimate of model performance, particularly important for preventing overfitting.

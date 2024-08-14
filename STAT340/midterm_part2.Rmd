@@ -1,0 +1,213 @@
+---
+title: "SP24 STAT340 Midterm <small>take-home portion</small>"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F)
+```
+
+
+## Testing problem <small>7,3pts for a,b</small>
+
+You're sitting by Lake Mendota one summer fishing, drinking a spotted cow and counting the birds that fly by to pass the time. You have a hunch one day that the distribution of birds flying may not be what you initially thought. You decide to set aside your fishing pole and run an experiment (the fish weren't biting today anyway).
+
+Every 15 minutes, you record down the number of birds you see flying by you overhead. You do this over the course of an entire day and obtain 32 measurements (assume the distribution of birds doesn't change throughout the day). You obtain the following dataset.
+
+```{r}
+counts = c(5,3,0,10,8,0,0,7,5,12,8,5,11,4,0,6,0,4,0,0,4,3,4,0,2,4,3,3,5,5,4,4)
+```
+
+a. Conduct a formal hypothesis test (i.e. compute a p-value) to show that the distribution of bird counts you see is probably NOT poisson.
+
+b. Suppose you decide to model the distribution instead as approximately $c * X$ rounded to the nearest integer, where $c$ is some constant and $X$ is poisson with mean $\lambda$. Note $c$ and $\lambda$ do NOT have to be integers (they can be any real number). Produce point estimates for $c$ and $\lambda$.
+   - Hint: one easy way of doing this is to first find the theoretical mean and variance of $c * X$, then use that to figure out an estimator using the sample mean and variance for each of $c$ and $\lambda$
+
+
+> ***PLEASE WRITE YOUR WORK BELOW:***
+
+> Part a
+
+- We first define the null hypothesis $H_0$ and $H_a$, and assume the $H_0$ to be true.
+  - $H_0$: The distribution of bird counts follows a Poisson distribution.
+  - $H_a$: The distribution of bird counts does not follow a Poisson distribution.
+
+- First, we calculate the observed mean and variance to compare with Poisson distribution characteristics, where the mean should equal the variance.
+
+```{r}
+# Assuming H0 is true, we find the mean and variance
+# Calculate the observed mean
+observed_mean <- mean(counts)
+
+# Calculate the observed variance
+observed_variance <- var(counts)
+
+observed_mean
+observed_variance
+
+```
+
+- The observed mean is 4.03125, and the observed variance is significantly higher at 10.80544. This discrepancy suggests a deviation from the Poisson distribution, prompting a formal hypothesis test via Monte Carlo simulation to compute a precise p-value.
+
+```{r}
+n <- length(counts) # Number of observations
+n_sim <- 1e6 # Number of simulations
+
+# Generate simulated datasets and calculate their variances
+simulated_variances <- replicate(n_sim, {
+  simulated_data <- rpois(n, lambda = observed_mean)
+  var(simulated_data)
+})
+
+# Calculate the p-value: proportion of simulations with variance as extreme or more extreme than observed
+p_value <- mean(simulated_variances >= observed_variance)
+
+p_value
+
+```
+
+- The significantly low p-value, nearing zero, indicates a strong discrepancy between our observed data and what would be expected if the bird count distribution followed a Poisson distribution. Specifically, because the p-value is below the conventional significance threshold of alpha = 0.05, we have sufficient statistical evidence to reject the null hypothesis.
+
+```{r}
+# Plot the distribution of simulated variances
+min_var <- min(simulated_variances)
+max_var <- max(max(simulated_variances), observed_variance)
+hist(simulated_variances, breaks=30, main="Simulated vs. Observed Variance", xlab="Variance", xlim=c(min_var, max_var + 1))
+abline(v = observed_variance, col="red")
+legend("topright", legend=c("Observed Variance"), col=c("red"))
+
+```
+
+- The plot above illustrates the distribution of variances from 1e6 simulated datasets under the assumption of a Poisson distribution with λ equal to the observed mean. The red line represents the observed variance from your dataset. This visual comparison clearly shows how the observed variance significantly deviates from the majority of the simulated variances, supporting our p_value calculated, and reinforcing the conclusion that the bird count distribution likely does not follow a Poisson distribution.
+
+> Part b
+
+- Upon deciding to model the distribution as approximately $c \times X$, with $X$ being a Poisson-distributed random variable with mean $\lambda$, and $c$ a constant multiplier, point estimates for $c$ and $\lambda$ were sought. Here, both $c$ and $\lambda$ are real numbers, not confined to integer values. The observations were approximated as the product of $c$ and $X$, rounded to the nearest integer.
+
+- To derive point estimates for $c$ and $\lambda$, the theoretical mean and variance of $c \times X$ were utilized. Given the observed sample mean ($\bar{x} = 4.03125$) and variance ($s^2=10.80544$), the equations were formulated as:
+  - The theoretical mean of the distribution is $\mu = c\lambda$.
+  - The theoretical variance of the distribution is $\sigma^2 = c^2\lambda$.
+  - We know that the sample mean ($\bar{x}$) and sample variance ($s^2$) can estimate $\mu$ and $\sigma^2$, respectively.
+  
+Given $\bar{x}$ and $s^2$, we can set up the following equations:
+  - $\bar{x} = c\lambda$
+  - $s^2 = c^2\lambda$
+  
+```{r}
+
+c <- observed_variance / observed_mean
+lambda <- observed_mean / c
+
+c
+lambda
+
+```
+  
+- Solving these equations yielded point estimates for $c$ and $\lambda$ as approximately 2.68 and 1.50, respectively. This suggests that the observed distribution can be approximated by the model $2.68 \times X$, where $X$ is Poisson with a mean of approximately 1.50.
+
+
+
+## Estimation problem <small>4,5,1 pts for a,b,c</small>
+
+We are attempting to estimate the median time that a certain chemical can remain stable. A chemical reaction is produced in a laboratory setting producing a compound. When the compound breaks down the experiment generates a tiny spark. We run an experiment and create 15 independent, but identical samples of this chemical and measure **the amount of time it remains stable until it sparks and decomposes**. The following is our dataset of the 15 wait times:
+
+```{r}
+chemical_times = c(0.542, 0.044, 0.073, 0.070, 0.108, 0.074, 0.291, 0.004, 0.050, 0.033, 0.061, 0.045, 0.168, 0.055, 0.061)
+```
+
+The experimenters would like to estimate the median time it takes before the chemical breaks down. Assume the times are well modeled by an exponential variable.
+
+a. Compute point estimates for any necessary parameters of this model.
+b. Use Monte Carlo estimation to compute a 95% confidence interval for the median time that the chemical remains stable.
+c. Use MC to estimate the coverage rate of the nominal "95%" confidence interval you just computed. Would you estimate that a confidence interval calculated in this manner is too wide, too narrow or just about the right width?
+   - Hint: treat your point estimate as the "TRUE value", then use this to redraw the initial starting dataset (i.e. redraw a new `chemical_times`). Then, use each of these redrawn initial datasets to create an MC confidence interval by the same process above, and check if your "TRUE value" point estimate is in it. Report a final percent coverage.
+
+
+> ***PLEASE WRITE YOUR WORK BELOW:***
+
+> Part a
+
+- To analyze the stability of a chemical through an exponential distribution model, we focus on estimating λ, the rate parameter. This parameter is crucial as it quantifies the frequency of chemical decomposition events per unit time.
+
+```{r}
+
+# Calculate sample mean of the observed wait times
+sample_mean <- mean(chemical_times)
+
+# Calculate sample median of the observed wait times
+sample_median <- median(chemical_times)
+
+# Estimate for lambda (rate parameter) as the reciprocal of the sample mean
+lambda_hat <- 1 / sample_mean
+
+sample_mean
+sample_median
+lambda_hat
+
+```
+
+- By calculating the sample mean of the observed wait times, we obtained a value of approximately 0.1119333. The observed sample median is 0.061. Using the sample mean, the estimated rate parameter, λ, is approximately 8.933889. This estimate provides insight into the expected rate at which the chemical compounds decompose, offering a pivotal metric for understanding the chemical's stability over time.
+
+> Part b
+
+```{r}
+
+n <- length(chemical_times) # Number of observations in the original dataset
+n_sim <- 1e5 # Number of simulations
+
+# Generate medians from simulated data
+simulated_medians <- replicate(n_sim, {
+  simulated_times <- rexp(n, rate = lambda_hat)
+  median(simulated_times)
+})
+
+# Compute 95% confidence interval for the median
+CI <- quantile(simulated_medians, probs = c(0.025, 0.975))
+
+CI
+
+```
+
+- From the Monte Carlo simulation, we note that the 95% confidence interval for the Median Time is 0.03448978 to 0.14898852. We also notice that our sample_median of 0.061 is covered within our confidence interval in this simulation.
+
+> Part c
+
+```{r}
+
+# Assume the estimated rate parameter from part a as lambda_hat as "TRUE value"
+lambda_hat <- 1 / mean(chemical_times)
+
+# True median from the original dataset
+true_median <- median(chemical_times)
+
+# Number of observations in the original dataset
+n <- length(chemical_times)
+
+# Number of simulations for generating new datasets and computing CIs
+n_sim <- 1000
+n_datasets <- 1000
+
+# Function to simulate a dataset, compute a CI for the median, and check coverage
+check_coverage <- function(true_median, lambda_hat, n, n_sim) {
+  simulated_medians <- replicate(n_sim, {
+    simulated_times <- rexp(n, rate = lambda_hat)
+    median(simulated_times)
+  })
+  
+  CI <- quantile(simulated_medians, probs = c(0.025, 0.975))
+  return(CI[1] < true_median & true_median < CI[2])
+}
+
+# Simulate new datasets, compute their CIs, and check if they cover the true median
+coverage_results <- replicate(n_datasets, {
+  check_coverage(true_median, lambda_hat, n, n_sim)
+})
+
+# Calculate the coverage rate
+coverage_rate <- mean(coverage_results)
+coverage_rate
+
+
+```
+
+- The estimated coverage rate of the nominal "95%" confidence interval is 100%. This indicates that in all simulated scenarios, the confidence interval successfully covered the true median estimated from the original dataset. This result suggests that the confidence interval calculated through this Monte Carlo simulation method is adequately capturing the true median time that the chemical remains stable, based on the assumption that the exponential distribution accurately models our data. However, a 100% coverage rate might also suggest that the confidence intervals are on the wider side and may be too wide, ensuring the true median is included but potentially overestimating the uncertainty around that median. This could be due to the relatively small sample size or the inherent properties of the distribution and the method used to estimate the confidence interval.

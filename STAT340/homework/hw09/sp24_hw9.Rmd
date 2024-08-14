@@ -1,0 +1,399 @@
+---
+title: "Homework 9"
+author: "Ethan Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Problem 1 More regression with `mtcars` (12 points; 2 pts each)
+
+In lecture, we worked briefly with the `mtcars` data set.
+Let's get more regression practice by working with it some more.
+
+### a) background
+
+Run `?mtcars` in the console (please __do not__ add it to this `Rmd` file) and briefly read the help page.
+Specifically, take note of the following:
+
+1. What is the source of this data?
+2. What is this data set measuring (i.e., what was the response variable in the original study, at least based on the brief description in the R documentation)?
+3. What predictors are available and what do they mean?
+
+***
+
+- Source of the Data: The mtcars data was extracted from the 1974 Motor Trend US magazine. This dataset comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models).
+- Response Variable: The original study focused on fuel consumption as the response variable, specifically measured as miles per gallon (mpg). This variable represents the fuel efficiency of the car, which is a critical factor of interest in studies involving automobile performance.
+- Predictors Available:
+  - mpg: Miles per (US) gallon. It measures the fuel efficiency of the car, serving as the response variable in many analyses.
+  - cyl: Number of cylinders in the car engine, which affects power and fuel efficiency.
+  - disp: Displacement (cu.in.), indicating the engine size which correlates with power output and fuel efficiency.
+  - hp: Gross horsepower, a measure of engine power output.
+  - drat: Rear axle ratio, which can affect the performance characteristics such as acceleration and top speed.
+  - wt: Weight (1,000 lbs), which heavily influences fuel efficiency and performance.
+  - qsec: 1/4 mile time; a measure of acceleration where lower numbers indicate faster acceleration.
+  - vs: Engine (0 = V-shaped, 1 = straight), relating to the engine configuration.
+  - am: Transmission (0 = automatic, 1 = manual), which impacts fuel efficiency and performance.
+  - gear: Number of forward gears which can influence fuel efficiency and driving comfort.
+  - carb: Number of carburetors which affects the engine's air/fuel mixture and thus performance and efficiency
+
+***
+
+You may want to also run `head(mtcars, 10)` or `View(mtcars)` to inspect the data frame briefly before moving on.
+
+### b) Fitting a model
+
+Use `lm` to run a regression of `mpg` on a few predictors in the data frame (choose two or three that you think would make a good model-- don't use all ten; we'll talk about why in later lectures).
+Make sure to include `data = mtcars` as a keyword argument to `lm` so that R knows what data frame to use.
+
+```{r}
+
+lm.mtcars = lm(mpg ~ cyl + gear + carb, data=mtcars)
+plot(lm.mtcars,ask=F,which=1:2)
+
+```
+
+Briefly inspect the residuals plot by running `plot(lm.mtcars,ask=F,which=1:2)`.
+What do you observe, and what does it mean?
+
+***
+
+- Residuals vs. Fitted Plot:
+  - Observation: Residuals are positive for fitted values below approximately 17 mpg and negative for fitted values above approximately 17 mpg.
+  - Implication: This pattern suggests that the model might be systematically underpredicting mpg for lower predicted values and overpredicting for higher predicted values. Such a trend often indicates a non-linear relationship between the predictors and the response variable that the linear model fails to capture. 
+  
+- Normal Q-Q Plot:
+  - Observation: Most points lie to the left of the dotted line.
+  - Implication: This deviation from the line in the Q-Q plot indicates that the residuals may not be normally distributed. Residuals lying predominantly to one side of the line suggest skewness in the distribution of residuals.
+
+***
+
+### c) Interpreting the model
+
+View the summary of your model by uncommenting and running the code below.
+```{r}
+
+summary(lm.mtcars)
+
+```
+
+Pick one of your predictors and give an interpretation of the estimate and standard error for its coefficient.
+Be careful in your wording of the interpretation.
+
+***
+
+- Interpretation of the gear Coefficient:
+  - Estimate (Coefficient) of gear: The estimate for the gear predictor is 3.0545. This coefficient suggests that, all other predictors being equal, each additional gear in a car is associated with an increase of approximately 3.05 miles per gallon in fuel efficiency. This relationship indicates that cars with more gears tend to be more fuel-efficient, potentially because additional gears allow the engine to operate more efficiently at various speeds.
+  - Standard Error of gear: The standard error associated with the gear coefficient is 1.1708. This measure gives an indication of the amount of variation in the coefficient estimate from sample to sample. A smaller standard error suggests that the estimate is more precise; in this case, the standard error tells us there is some variability, but the t-value (ratio of the estimate to the standard error) still suggests a statistically significant effect.
+
+***
+
+Which coefficients are statistically significantly different from zero? How do you know?
+
+***
+
+Statistically Significant Coefficients:
+- cyl has a p-value of 0.010021, which is less than 0.05, indicating its coefficient is significantly different from zero.
+- gear has a p-value of 0.014411, also indicating significant difference from zero.
+- carb has a p-value of 0.008240, confirming it too is significantly different from zero.
+
+***
+
+### d) Interpreting residuals
+
+What is the Residual Standard Error (RSE) for this model? How many degrees of freedom does it have?
+
+***
+
+- RSE Value: The Residual Standard Error for this model is 2.897.
+- Degrees of Freedom: The model has 28 degrees of freedom, which is calculated as the number of observations minus the number of parameters being estimated (including the intercept). Given that the mtcars dataset has 32 observations and the model includes three predictors plus an intercept, the calculation is 32−3−1=28.
+
+***
+
+What is the value of $R^2$ for this model? (__Hint:__ look at the output of `summary`) Give an interpretation of this value.
+
+***
+
+- The value of $R^2$ for this model is 0.7913.
+- $R^2$, or the coefficient of determination, indicates the proportion of variance in the dependent variable (mpg) that is predictable from the independent variables (cyl, gear, carb). An $R^2$ value of 0.7913 means that 79.13% of the variance in mpg can be explained by the model's predictors. A higher $R^2$ value generally indicates a better fit of the model to the data. Since this is considered a high $R^2$ value, it suggests that the model provides a good fit to the data.
+
+***
+
+### e) Adjusted $R^2$
+
+Briefly read about the adjusted $R^2$ [here](https://www.statisticshowto.com/probability-and-statistics/statistics-definitions/adjusted-r2/).
+What is the adjusted $R^2$ of this model and how does this differ from the usual $R^2$ value? (__Hint:__ again, look at the output of `summary`).
+
+***
+
+- The adjusted $R^2$ for this model is 0.7689.
+- The regular $R^2$ value, as mentioned, is 0.7913. This statistic measures the proportion of variance in the dependent variable (mpg) that is predictable from the independent variables (cyl, gear, carb). It is a measure of the strength of the relationship between the model and the dependent variable.
+- Unlike the usual $R^2$, the adjusted $R^2$ also accounts for the number of predictors in the model. It adjusts the statistic based on the number of variables, providing a more accurate measure in the context of multiple predictors. The formula for adjusted $R^2$ modifies the original $R^2$ to penalize for the inclusion of additional predictors that do not improve the model's ability to predict the dependent variable.
+- The difference between $R^2$ and adjusted $R^2$ (0.7913 vs. 0.7689) highlights the impact of including three predictors in the model. Although adding more predictors can increase the $R^2$, adjusted $R^2$ provides a more conservative and more honest evaluation of the model performance, particularly in the context of model complexity and potential overfitting.
+
+***
+
+### f) CIs for coefficients
+
+Read the documentation for the `confint` function, and use it to generate $95\%$ confidence intervals for the coefficients of your model.
+Give an interpretation of these confidence intervals.
+
+```{r}
+
+confint(lm.mtcars, level = 0.95)
+
+```
+
+***
+
+- Intercept (Approximately 22.5616):
+  - Confidence Interval: Ranges from approximately 9.99 to 35.14.
+  - Interpretation: If all predictors (cyl, gear, carb) are held at zero, the expected mpg would lie between 9.99 and 35.14 with 95% confidence. The practical implications of this range reflect the average baseline mpg when the impacts of the cylinders, gears, and carburetors are removed.
+
+- Cylinders (cyl -1.5119):
+  - Confidence Interval: Ranges from approximately -2.63 to -0.39.
+  - Interpretation: This negative interval suggests that for each additional cylinder, the mpg is expected to decrease between 0.39 and 2.63 miles per gallon, with 95% confidence. The interval solidifies the understanding that increasing the number of cylinders generally decreases fuel efficiency, highlighting a relatively strong and statistically significant negative impact.
+  
+- Gears (gear 3.0545):
+  - Confidence Interval: Ranges from about 0.66 to 5.45.
+  - Interpretation: Each additional gear is associated with an increase in mpg between 0.66 and 5.45 miles per gallon with 95% confidence. This broad range indicates variability in how additional gears can improve fuel efficiency, but consistently suggests a positive relationship.
+  
+- Carburetors (carb -1.5571):
+  - Confidence Interval: Ranges from -2.68 to -0.44.
+  - Interpretation: For each additional carburetor, mpg decreases by between 0.44 and 2.68 miles per gallon with 95% confidence. This finding underscores the negative effect of increased carburetor count on fuel efficiency.
+
+***
+
+
+## Problem 2) the `cats` data set (8 points; 2pts each)
+
+The `cats` data set, included in the `MASS` library, contains data recorded from 144 cats.
+Each row of the data set contains the body weight (`Bwt`, in kgs), heart weight (`Hwt`, in grams) and the sex (`Sex`, levels `'F'` and `'M'`) for one of the cats in the data set.
+
+### a) plotting the data
+
+Create a scatter plot showing heart weight on the y-axis and body weight on the x-axis.
+Ignore the `Sex` variable in this plot.
+
+```{r}
+library(MASS)
+head(cats)
+```
+
+```{r}
+
+plot(cats$Bwt, cats$Hwt, 
+     main = "Scatter Plot of Heart Weight vs. Body Weight",
+     xlab = "Body Weight (kg)", 
+     ylab = "Heart Weight (g)", 
+     pch = 19, col = "blue")
+
+```
+
+Briefly describe what you see. Is there a clear trend in the data?
+
+- The scatter plot of heart weight versus body weight in cats reveals a vaguely linear relationship, suggesting that as body weight increases, heart weight tends to increase as well, although the data points exhibit some variability around this trend.
+
+### b) fitting a linear model
+
+Fit a linear regression model to predict cat heart weight from cat body weight (and using an intercept term, of course).
+
+```{r}
+
+lm.cats = lm(cats$Hwt ~ cats$Bwt, data = cats)
+summary(lm.cats)
+
+```
+
+Examine the coefficients of your fitted model.
+What is the coefficient for the `Bwt` variable?
+Interpret this coefficient-- a unit change in body weight yields how much change in heart weight?
+
+```{r}
+
+coef(lm.cats)
+
+```
+
+***
+
+- Coefficient for Bwt
+  - Value: 4.0341
+  - Interpretation: This coefficient indicates that for every one kilogram increase in body weight, the heart weight is expected to increase by approximately 4.0341 grams. This positive coefficient suggests a strong and direct relationship between body weight and heart weight in cats. Specifically, as cats get heavier, their heart weight also tends to be greater, which might reflect the increased cardiovascular demands of a larger body mass.
+
+***
+
+### c) back to plotting
+
+Create the same plot from Part a above, but this time color the points in the scatter plot according to the `Sex` variable.
+You may use either `ggplot2` or the built-in R plotting tools, though I would recommend the former, for this.
+
+You should see a clear pattern. Describe it. A sentence or two is fine here.
+
+```{r}
+
+library(ggplot2)
+
+ggplot(cats, aes(x = Bwt, y = Hwt, color = Sex)) +
+  geom_point() +  
+  labs(title = "Heart Weight vs. Body Weight by Sex",
+       x = "Body Weight (kg)", 
+       y = "Heart Weight (g)",
+       color = "Sex") +
+  theme_minimal()
+
+```
+
+***
+
+- In the scatter plot examining the relationship between body weight and heart weight among cats, categorized by sex, a clear pattern emerges: female cats generally exhibit lower body weights and correspondingly smaller heart weights compared to their male counterparts. Specifically, the clustering of data points indicates that males consistently possess higher metrics in both physiological dimensions. 
+
+***
+
+### d) adding `Sex` and an interaction
+
+From looking at the data, it should be clear that the `Sex` variable has explanatory power in predicting heart weight, but it is also very correlated with body weight.
+
+Fit a new linear regression model, still predicting heart weight, but this time including both body weight and sex as predictors *and* an interaction term between body weight and sex.
+Take note of how R assigns `Sex` a dummy encoding.
+
+```{r}
+
+lm.cats.interaction = lm(Hwt ~ Bwt * Sex, data = cats)
+summary(lm.cats.interaction)
+
+```
+
+Examine the outputs of your model.
+In particular, note the coefficients of `Sex` and the interaction between `Bwt` and `Sex`.
+Are both of these coefficients statistically significantly different from zero?
+How do you interpret the interaction term?
+
+***
+- (Intercept) 2.9813: This is the estimated heart weight when both body weight (Bwt) is zero (which is not practical) and sex is female (Sex being categorical, with female likely as the baseline). The intercept here isn't meaningfully interpretable due to the context of Bwt being zero.
+- Bwt 2.6364: This coefficient suggests that for female cats (since SexF is the baseline), every one kilogram increase in body weight is associated with an increase in heart weight by approximately 2.6364 grams. This is a significant predictor (p < 0.001).
+- SexM -4.1654: This estimate indicates that, holding body weight constant at zero, male cats would have their heart weight lower by 4.1654 grams compared to female cats. While the interpretation of heart weight at zero body weight is not practical, this coefficient essentially adjusts the baseline heart weight for males relative to females.
+- Bwt:SexM 1.6763: This interaction term suggests that the increase in heart weight per kilogram of body weight for male cats is an additional 1.6763 grams more than what is observed for female cats. In other words, the slope of the relationship between body weight and heart weight is steeper for males than it is for females.
+
+- Both the Bwt coefficient and the Bwt:SexM interaction term are statistically significant (p-values < 0.05), indicating reliable effects.
+- The SexM coefficient is also significant, though the practical interpretation should be cautious due to the hypothetical nature of zero body weight.
+
+***
+
+
+## Problem 3 - Using Multiple regression to fit nonlinear data (10 points, 2.5 pts each)
+
+Open the dataset `multData.csv`. This data set consists of three predictor variables, simply named `X1`, `X2` and `X3`. The response variable is `Y`. In this problem you will explore how to use the multiple regression model to model nonlinear relationships.
+
+### a) the first model
+
+First we will explore the relationship between $Y$ and the first two predictors $X1$ and $X2$. Fit the linear model
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \epsilon$$
+Interpret the coefficients of both X1 and X2. 
+
+```{r}
+
+multData <- read.csv("multData.csv")
+lm_model <- lm(Y ~ X1 + X2, data = multData)
+summary(lm_model)
+
+```
+
+***
+
+- Coefficient for X1 (-6.7573):
+  - Estimate: This suggests that holding X2 constant, a one unit increase in X1 is associated with a decrease of approximately 6.7573 units in Y. This significant negative coefficient indicates a strong inverse relationship between X1 and Y.
+  - Statistical Significance: With a p-value well below 0.05 (< 2e-16), this relationship is statistically significant, meaning it is unlikely to have occurred by chance.
+
+- Coefficient for X2  (-22.8693):
+  - Estimate: Holding X1 constant, a one unit increase in X2 is associated with a decrease of approximately 22.8693 units in Y. This coefficient is even larger in magnitude than that for X1, suggesting an even stronger inverse relationship with Y.
+  - Statistical Significance: Similarly significant (p-value 3.91e-08), indicating a reliable effect.
+
+***
+
+
+### b) Investigating interaction of quantitative predictors
+
+Next introduce an interaction term to the model
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1\cdot X_2 + \epsilon$$
+
+Fit the model and view the summary output. Has this improved the model fit? Did anything surprising happen to the coefficients? Try to explain what happened.
+
+
+```{r}
+
+lm_model_interaction = lm(Y ~ X1 + X2 + X1:X2, data = multData)
+summary(lm_model_interaction)
+
+```
+
+***
+
+
+- The Coefficients for X1 and X2 are drastically different:
+  - Intercept (172.7879): This is the expected value of Y when both X1 and X2 are zero. Given the large standard error (166.9912), the intercept is not significantly different from zero (p-value 0.30621), suggesting caution in interpreting it outside the context of centered or meaningful values of X1 and X2.
+  - Coefficient for X1 (27.4350): Indicates that holding X2 constant, a one unit increase in x1 results in an increase of 27.4350 units in Y, assuming X2 is zero. This effect is statistically significant (p-value 0.00127).
+  - Coefficient for X2 (21.5155):
+Suggests that for each unit increase in X2, Y increases by 21.5155 units when X1 is held constant at zero. This coefficient is borderline significant (p-value 0.05205), indicating a potential impactful relationship.
+  - Interaction Coefficient (X1:X2) (-2.2036): This coefficient is insightful as it indicates the change in the effect of X1 on Y for each additional unit of X2 and vice versa. A value of -2.2036 means that the increase in Y attributed to increases in X1 and X2 is lessened by 2.2036 units for each unit increase in both. This interaction is highly significant (p-value 9.34e-05).
+  
+- The introduction of the interaction term X1:X2 has significantly improved the model's explanatory power, as reflected in the higher $R^2$ and lower residual standard error.
+ - Residual Standard Error: 5.643, indicating the standard deviation of the residuals; lower than the previous model, suggesting a better fit.
+  - Multiple R-squared: 0.9827, showing that approximately 98.27% of the variability in Y is explained by the model. This is an excellent fit.
+  - Adjusted R-squared: 0.9816, adjusts for the number of predictors used; still indicates an excellent model.
+
+***
+
+
+### c) Introducing the last predictor
+
+Next fit a model that introduces the `X3` variable. 
+
+$$Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1\cdot X_2  + \beta_4 X_3 \epsilon$$
+Has the model fit improved? In what way (Justify your answer)? 
+
+```{r}
+
+lm_model_full = lm(Y ~ X1 + X2 + X1:X2 + X3, data = multData)
+summary(lm_model_full)
+
+```
+
+***
+
+- Coefficients Interpretation
+  - Intercept (119.01881): This is the expected value of Y when all predictors (X1, X2, X3) are zero. Given the context of your data, this may or may not be a feasible interpretation physically but sets a statistical baseline.
+  - Coefficient for X1 (26.58555): Holding other factors constant, each unit increase in X1 results in an increase of approximately 26.59 units in Y. The effect is statistically significant, suggesting a strong positive relationship.
+  - Coefficient for X2 (20.97950): Each unit increase in X2, keeping other variables constant, increases Y by about 20.98 units, which is also statistically significant.
+  - Coefficient for X3 (60.26613): X3 shows the strongest effect among the predictors, with each unit increase resulting in a substantial increase in Y by about 60.27 units. This significant effect underscores X3's pivotal role in explaining the variability in Y.
+  - Interaction Coefficient (X1:X2) (-2.14656): The interaction term remains highly significant and negative, indicating that the combined effect of X1 and X2 on Y reduces the outcome by about 2.15 units for each unit increase in both X1 and X2.
+  
+- Model Fit
+  - Residual Standard Error: 1.077, a decrease from previous models, indicates a more precise fit with less deviation in the residuals.
+  - Multiple R-squared: 0.9994, and Adjusted R-squared: 0.9993 reflect an excellent model fit, almost perfect, explaining nearly all the variability in Y.
+
+***
+
+
+### d) Considering higher order terms
+
+Finally explore higher order terms for the X3 variable: Introduce $X3^2$, $X3^3$ etc and determine if any of these higher order terms are justified in the model. Explain your reasoning and present your final model. Look at the diagnostic plots and discuss whether the assumptions of the multiple regression model seem to be justified.
+
+```{r}
+
+lm_model_higher_order = lm(Y ~ X1 + X2 + X1:X2 + X3 + I(X3^2) + I(X3^3), data = multData)
+summary(lm_model_higher_order)
+
+```
+
+***
+
+- The coefficients for X1, X2, and their interaction X1:X2 remain statistically significant, indicating their importance in predicting Y.
+- The coefficients for X3, (X3)^2, and (X3)^3 are not statistically significant (p-values > 0.05), suggesting that these higher-order terms do not contribute significantly to explaining the variation in Y.
+- The adjusted $R^2$ value is exceptionally high (0.9994), indicating that the model explains almost all the variability in the response variable, Y.
+
+***

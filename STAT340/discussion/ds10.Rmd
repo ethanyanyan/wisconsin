@@ -1,0 +1,292 @@
+---
+title:  "STAT340 Discussion 10: Logistic regression"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(ggplot2)
+```
+
+## XKCD comic
+
+<center><a href="https://xkcd.com/1425/"><img id="comic" src="https://imgs.xkcd.com/comics/tasks.png"></a></center>
+
+## Introduction: Spam Filtering
+
+We'll be exploring a dataset consisting of characteristics of 3,921 emails and whether or not each email is classified as Spam. A dataset like this is a good opportunity to practice logistic regression, classifying an email as spam or not spam to essentially create a spam filter.
+
+The data is found in the 'email.csv' file. The following code will load the dataframe.
+
+```{r}
+email <- read.csv("email.csv", header=TRUE)
+```
+
+Explore the data frame. A description of the variables can be found <a href="https://statpowers.com/dataDesc/email.txt">here</a>.
+
+
+What proportion of the emails in this dataset are spam?
+
+```{r}
+
+proportion <- sum(email$spam == 1) / length(email$spam)
+proportion
+
+```
+
+## A Categorical Predictor
+
+Let's consider a simple model with just a single predictor: whether or not the email contains the word winner. What proportion of emails with the word "winner" are spam? What proportion of emails without the word "winner" are spam?
+
+```{r}
+email$winner <- factor(email$winner, levels = c("no", "yes"), labels = c(0, 1))
+winner_spam_proportion <- sum(email$spam == 1 & email$winner == 1) / sum(email$winner == 1)
+winner_spam_proportion
+
+nonwinner_spam_proportion <- sum(email$spam == 1 & email$winner == 0) / sum(email$winner == 0)
+nonwinner_spam_proportion
+
+```
+
+Fit a logistic model predicting spam from just this single predictor. Look at the summary output
+
+```{r}
+
+winner_spam_model <- glm(spam ~ 1 + winner, data=email, family=binomial)
+summary(winner_spam_model)
+
+```
+Is winner a significant predictor? How do you know? How do you interpret the intercept and coefficient of this model?
+
+*** 
+
+- Yes, winner is a significant predictor. The winner1 p-value of 3.06e-08 is extremely small and indicates that there is strong evidence against the null hypothesis, which would state that the winner1 coefficient is zero.
+
+- (Intercept) Estimate = -2.31405: This is the log-odds of an email being spam when the predictor is at its reference level, which in this case would be when "winner" is not present. Given that the log-odds is less than zero, the probability that an email with the word winner not in it is not likely to be a spam, with probability e^(-2.31405).
+
+- winner1 Estimate = 1.52559: This is the change in the log-odds of an email being spam for emails that contain the word "winner" compared to emails that do not contain the word "winner". This means the odds ratio for emails containing "winner" versus those not containing it is e^(1.52559)≈4.60. Therefore, the presence of "winner" increases the odds of an email being spam by approximately, 4.60 times higher compared to emails without "winner".
+
+
+***
+
+## A Quantitative Predictor
+
+Let's consider a quantitative predictor - the number of characters in the email (in thousands) in the num_char variable. Fit a new logistic model to the data with only num_char as the predictor variable
+
+```{r}
+
+num_char_model <- glm(spam ~ 1 + num_char, data=email, family=binomial)
+summary(num_char_model)
+
+```
+Is num_char a significant predictor? How can you interpret the coefficient?
+
+***
+
+- Yes, num_char is a significant predictor. The num_char p-value of 9.5e-15 is extremely small and indicates strong evidence against the null hypothesis that there is no effect of num_char on the likelihood of an email being spam. In other words, the number of characters in an email significantly affects whether the email is spam or not.
+
+- For every thousand-character increase in the email, the odds of the email being spam are multiplied by exp(-0.062071) ≈ 0.9398. This odds ratio tells us that each additional thousand characters are associated with a 6.02% decrease in the odds of an email being spam (1 - 0.9398 = 0.0602)
+
+***
+
+An email comes in with 150 characters (150 is .15 in thousands). What is the estimated probability that such an email is spam?
+
+```{r}
+
+log_odds_150 <- -0.062071 * 0.15 + -1.798738
+odds_150 <- exp(log_odds_150)
+probability_150 <- odds_150 / (1+odds_150)
+probability_150
+
+num_char_value <- 0.15
+prob_spam_150 <- predict(num_char_model, newdata = data.frame(num_char = num_char_value), type = "response")
+prob_spam_150
+
+```
+
+Another email comes in with 2300 characters. What is the estimated probability that this email is spam?
+
+```{r}
+
+log_odds_2300 <- -0.062071 * 2.3 + -1.798738
+odds_2300 <- exp(log_odds_2300)
+probability_2300 <- odds_2300 / (1+odds_2300)
+probability_2300
+
+num_char_value <- 2.3
+prob_spam_2300 <- predict(num_char_model, newdata = data.frame(num_char = num_char_value), type = "response")
+prob_spam_2300
+
+```
+
+*** 
+
+-Email with 150 Characters:
+  - Probability of Being Spam: 0.1408741 (or 14.09%)
+  - Interpretation: An email with 150 characters has approximately a 14.09% chance of being spam according to your model. This probability, while not negligible, suggests that shorter emails like this one are somewhat less likely to be spam according to your logistic model. The negative coefficient for num_char in your model indicates that shorter emails are generally less suspected of being spam, but this relatively higher probability compared to longer emails reflects a moderate risk.
+
+- Email with 2300 Characters:
+  - Probability of Being Spam: 0.125483 (or 12.55%)
+  - Interpretation: An email with 2300 characters has a 12.55% chance of being spam. This suggests that as the email length increases, the likelihood of it being spam slightly decreases. Given the nature of spam emails, which often tend to be shorter to quickly deceive the recipient with less effort in content creation, the model's prediction fits general expectations.
+
+***
+
+## Building a better model
+
+Now it's time to build another model. Pick at least 5 predictor variables to include in the model. Before you fit the model record your hunch as to which might be the most powerful predictor (right now we're using the term 'power' loosely). Which variables do you think will have positive coefficients, which will have negative coefficients?
+
+***
+
+- These are the coefficients I will be using num_char + dollar + winner + viagra + exclaim_mess + re_subj
+- I suspect that dollar and winner might be the most powerful predictors due to their direct association with common spam themes such as money and winning contests.
+
+***
+
+Fit your logistic model and look at the summary. Were you correct in any of your hunches? Are any of the variables not significant?
+
+
+```{r}
+
+multi_var_model <- glm(spam ~ num_char + dollar + winner + viagra + exclaim_mess + re_subj, 
+                       data = email, family = binomial())
+
+
+summary(multi_var_model)
+
+```
+
+*** 
+
+- Most of the hunches for the variables were correct.
+
+- dollar (Occurrences of "dollar"):
+  - Coefficient: -0.040429 (Not Significant, p = 0.0835)
+  - Interpretation: Contrary to the prediction, the coefficient for dollar is negative, though it is not statistically significant (p > 0.05). This suggests that mentions of "dollar" do not reliably increase the likelihood of an email being spam, at least not within this dataset's context.
+
+- viagra (Occurrences of "viagra"):
+  - Coefficient: 1.757306 (Not Significant, p = 0.9655)
+  - Interpretation: Despite expectations, viagra turned out to be an insignificant predictor with a very high p-value. This might be due to a lack of sufficient instances where "viagra" was mentioned or due to the specific context or dataset sampled.
+
+***
+
+Play around with the model - try adding or removing predictors until you're happy with a model that has somewhere between 5 to 10 predictors. We haven't gone into great detail in class, but you can use AIC as a metric to determine if the one model is statistically "better" than another (when comparing two models we prefer the model with the lower AIC). However, you can just keep adding variables until you have all the variables you want.
+
+## Validating the Model
+
+Now that you've picked a model, we're going to split our data into two parts - a training set and a testing set. The random number seed will ensure that all students have the same training and testing sets. 
+
+```{r}
+set.seed(2023)
+tr.idx <- sample(nrow(email),size=floor(nrow(email)*.80), replace=FALSE)
+email.tr <- email[tr.idx,]
+email.ts <- email[-tr.idx,]
+```
+
+Using the model you chose previously, fit it to the training dataset and save the logistic model as spam.filter. Check the summary output to see some diagnostics. Is the summary much different than when the model was fit to the full dataset?
+
+```{r}
+
+# Fit the logistic regression model on the training data
+spam.filter <- glm(spam ~ num_char + dollar + winner + viagra + exclaim_mess + re_subj, 
+                   data = email.tr, family = binomial())
+
+summary(spam.filter)
+
+```
+
+***
+
+- dollar (Occurrences of "dollar"):
+  - Coefficient: -0.080446 (Significantly different from the full dataset model where it was not significant)
+  - Interpretation: Contrary to initial predictions and the full dataset, more occurrences of "dollar" now significantly decrease the likelihood of spam in the training dataset. This could suggest variability in how "dollar" appears in spam versus non-spam emails
+  
+- The insignificance of viagra across both datasets despite its theoretically predictive nature might suggest reconsidering its use or exploring data collection methods to ensure sufficient variability.
+
+- The AIC for the training model is 1664.1, which should be compared against the full model's AIC (2101.8). The lower AIC suggests a better fit relative to the number of parameters used.
+
+***
+
+
+There are different ways to validate the model. We'll run a prediction on the testing dataset and perform some diagnostics. The code below should run for you as long as you named your model appropriately. in order to knit, you should remove the eval=FALSE option
+
+```{r}
+test.pred <- predict(spam.filter, newdata=email.ts, type="response")
+threshold <- .5
+spam.predict <- as.numeric(test.pred > threshold)
+
+results.table <- table(spam = email.ts$spam, prediction = spam.predict)
+results.table
+
+#The following gives your 'hit' rate by row
+prop.table(results.table, 1)
+
+#Accuracy is proportion of correct predictions:
+(results.table[1,1]+results.table[2,2])/sum(results.table)
+
+#True positive rate is the likelihood a SPAM will be identified
+(results.table[2,2])/sum(results.table[2,])
+
+#False positive rate is the likelihood a legit email will be filtered out
+(results.table[1,2])/sum(results.table[1,])
+```
+
+You can tune your filter by adjusting the threshold. The default in this code is to classify an email as spam if the predicted probability > .5; What happens when you raise that up to .80? Or lower it to .20? What happens to these metrics? How can you tune the threshold to keep the false positive rate at 5%?
+
+***
+
+- Increasing the Threshold to 0.80: This will generally decrease the false positive rate (fewer legitimate emails mistakenly flagged as spam), but increase the false negative rate (more spam emails mistakenly classified as non-spam). Essentially, the filter becomes more conservative, requiring stronger evidence before labeling an email as spam.
+- Decreasing the Threshold to 0.20: This move will increase both the true positive rate (more spam emails correctly identified) and the false positive rate (more legitimate emails incorrectly flagged as spam). The filter becomes more aggressive, catching more spam at the risk of disrupting normal email flow.
+- To maintain a false positive rate close to 5% while minimizing false negatives, the threshold can be fine-tuned. This can be achieved either through iterative adjustment or by graphically plotting these performance metrics across a range of threshold values to visually determine the optimal setting.
+
+***
+
+## Refining your Spam Filter
+Ok - if you have time why don't you try to build the ultimate spam filter. All bets are off, use as many predictors as you want. Try putting in some variable transformations if you want, or interactions. Train it on the training set and validate it on the testing set. Can you create a filter that catches many of the spam emails while letting all of the legitimate emails through?
+
+```{r}
+
+enhanced_spam_model <- glm(spam ~ num_char + log(num_char + 1) + sqrt(num_char) + I(num_char^2) +
+                           dollar + winner + viagra + exclaim_mess + re_subj +
+                           num_char:dollar + num_char:winner + num_char:viagra,
+                           data = email.tr, family = binomial())
+
+summary(enhanced_spam_model)
+
+test.pred <- predict(enhanced_spam_model, newdata=email.ts, type="response")
+spam.predict <- as.numeric(test.pred > 0.5)
+
+results.table <- table(Actual = email.ts$spam, Prediction = spam.predict)
+print(results.table)
+
+accuracy <- sum(diag(results.table)) / sum(results.table)
+sensitivity <- results.table[2,2] / sum(results.table[2,])  # True positive rate
+specificity <- results.table[1,1] / sum(results.table[1,])  # True negative rate
+false_positive_rate <- results.table[1,2] / sum(results.table[1,])  # FPR
+
+cat("Accuracy:", accuracy, "\n",
+    "Sensitivity (True Positive Rate):", sensitivity, "\n",
+    "Specificity (True Negative Rate):", specificity, "\n",
+    "False Positive Rate:", false_positive_rate, "\n")
+
+test_threshold <- function(threshold) {
+  spam.predict <- as.numeric(test.pred > threshold)
+  results.table <- table(Actual = email.ts$spam, Prediction = spam.predict)
+  
+  accuracy <- sum(diag(results.table)) / sum(results.table)
+  sensitivity <- results.table[2,2] / sum(results.table[2,])  # TPR
+  false_positive_rate <- results.table[1,2] / sum(results.table[1,])  # FPR
+  
+  list(accuracy = accuracy, sensitivity = sensitivity, FPR = false_positive_rate)
+}
+
+thresholds <- seq(0.1, 0.9, by = 0.1)
+sapply(thresholds, test_threshold)
+
+
+```
+
+*** 
+
+- Mix of many different variables does not necessarily produce best results as seen in the model above. Best threshold seems to be roughly 0.6-0.7.
+
+***

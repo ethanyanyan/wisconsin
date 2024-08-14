@@ -1,0 +1,110 @@
+---
+title: "PDF, CDF, & inverse CDF"
+output: html_document
+runtime: shiny
+---
+
+<style>
+.shiny-frame{width:1400px;height:1200px;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F)
+library(tidyverse)
+library(gridExtra)
+```
+
+
+
+Example of PDF, CDF, inverse CDF
+
+### Normal
+
+```{r,echo=F,fig.width=8,fig.height=8}
+range = 6
+
+inputPanel(
+  sliderInput("mu", label="Mean",min=-range,max=range,value=0,step=0.1),
+  sliderInput("sigma2", label="Variance",min=.01,max=10,value=1,step=.01),
+  sliderInput("x", label="x",min=-range,max=range,value=0,step=0.01)
+)
+
+expd = 0.005
+
+renderPlot({
+  grid.arrange(
+    ggplot()+stat_function(fun=~{dnorm(.x,input$mu,sqrt(input$sigma2))},n=1001)+
+      scale_x_continuous(expand=c(0,0),limits=c(-range,range)) + 
+      scale_y_continuous(expand=c(expd,expd)) + 
+      geom_point(aes(x=input$x,y=dnorm(input$x,input$mu,sqrt(input$sigma2))),color="red",size=4) + 
+      stat_function(fun=~{dnorm(.x,input$mu,sqrt(input$sigma2))},n=1001,geom="area",xlim=c(-100,input$x),fill="red",alpha=.5)+
+      labs(title="Probability density function (PDF)",x="x",y="Density"),
+    ggplot()+geom_function(fun=~{pnorm(.x,input$mu,sqrt(input$sigma2))},n=1001)+
+      geom_point(aes(x=input$x,y=pnorm(input$x,input$mu,sqrt(input$sigma2))),color="red",size=4) +
+    scale_x_continuous(expand=c(expd,expd),limits=c(-range,range)) + scale_y_continuous(expand=c(expd,0)) + labs(title="Cumulative density function (CDF)",x="x",y="Probability"),
+    ggplot()+geom_function(fun=~{qnorm(.x,input$mu,sqrt(input$sigma2))},n=1001)+
+      geom_point(aes(x=pnorm(input$x,input$mu,sqrt(input$sigma2)),y=input$x),color="red",size=4) +
+    scale_x_continuous(expand=c(expd,expd),limits=c(0,1)) + scale_y_continuous(expand=c(expd,expd),limits=c(-range,range)) + labs(title="Inverse CDF",x="Probability",y="x"),
+    nrow=2)
+},height=600)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- ### Binomial -->
+
+<!-- ```{r,echo=F,fig.width=8,fig.height=8} -->
+<!-- max_n = 20 -->
+
+<!-- inputPanel( -->
+<!--   sliderInput("n", label="Number of trials",min=0,max=max_n,value=10,step=1), -->
+<!--   sliderInput("p", label="Probability of success",min=0,max=1,value=.5,step=.01), -->
+<!--   sliderInput("x", label="x",min=0,max=max_n,value=5,step=1) -->
+<!-- ) -->
+
+<!-- expd = 0.005 -->
+
+<!-- renderPlot({ -->
+<!--   grid.arrange( -->
+<!--     ggplot()+geom_col(data=tibble(x=0:input$n,y=dbinom(x,input$n,input$p)),aes(x=x,y=y)) + -->
+<!--       scale_x_continuous(expand=c(0,0),limits=c(0,input$n)) +  -->
+<!--       scale_y_continuous(expand=c(expd,expd)) +  -->
+<!--       geom_point(aes(x=input$x,y=dnorm(input$x,input$mu,input$sigma2)),color="red",size=4) +  -->
+<!--       stat_function(fun=~{dnorm(.x,input$mu,input$sigma2)},n=1001,geom="area",xlim=c(-100,input$x),fill="red",alpha=.5)+ -->
+<!--       labs(title="Probability density function (PDF)",x="x",y="Density"), -->
+<!--     ggplot()+geom_function(fun=~{pnorm(.x,input$mu,input$sigma2)},n=1001)+ -->
+<!--       geom_point(aes(x=input$x,y=pnorm(input$x,input$mu,input$sigma2)),color="red",size=4) + -->
+<!--     scale_x_continuous(expand=c(expd,expd),limits=c(-range,range)) + scale_y_continuous(expand=c(expd,0)) + labs(title="Cumulative density function (CDF)",x="x",y="Probability"), -->
+<!--     ggplot()+geom_function(fun=~{qnorm(.x,input$mu,input$sigma2)},n=1001)+ -->
+<!--       geom_point(aes(x=pnorm(input$x,input$mu,input$sigma2),y=input$x),color="red",size=4) + -->
+<!--     scale_x_continuous(expand=c(expd,expd),limits=c(0,1)) + scale_y_continuous(expand=c(expd,expd),limits=c(-range,range)) + labs(title="Inverse CDF",x="Probability",y="x"), -->
+<!--     nrow=2) -->
+<!-- },height=600) -->
+<!-- ``` -->
+
+
+
+

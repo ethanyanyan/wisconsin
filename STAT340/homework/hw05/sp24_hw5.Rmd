@@ -1,0 +1,479 @@
+---
+title: "Homework 5"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Problem \#1: Testing coin flips <small>(6 pts)</small>
+
+In the six sequences below, only one of them is actually **randomly generated from independent flips of a fair coin**. Use a combination of everything you know (common sense, Monte Carlo, hypothesis testing, etc.) to identify which is actually random and explain your reasoning.
+
+(For full points, conduct a formal test and report a p-value for each sequence. You may use a combination of multiple tests to arrive at your answer. If you cannot compute a p-value for each sequence, you can still earn a significant amount of partial credit by carefully explaining your reasoning and response as best as you can.)
+
+My advice is **be creative** with the test statistics you come up with to eliminate each sequence! Think of some way of summarizing a sequence of flips that might be useful for comparing against a simulated sequence of random flips. After you come up with an idea for a statistic, remember to run it on many MC generated completely random flips to produce a distribution under the null, which you can then compare with your data to get a p-value. Also, be careful of now you define "more extreme" than the data.
+
+(2 bonus points available if you can find a single test that is powerful enough to reject all the fake sequences together in one step. Yes, at least one such possible test exists.)
+
+```{r}
+flips1 = "HTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHTHT"
+
+flips2 = "HHHTHTTTHHTHHTHHHTTTTHTHTHHTTHTHHHTHHTHTTTHTHHHTHTTTHTHTHHTHTHTTHTHHTHTHTTTHTHHHTHTHTTHTHTHHTHTHTHHHTHTTTHTHHTHTHTHHTTTHTHHTHHTTTTHTHTHHHTHTTHTHHTHTHTTHTHHTHTHHHTHHHTHTTTHTTHTTTHTHHHTHTHTTHTHHTHHTHTTT"
+
+flips3 = "HHTHTHTTTHTHHHTHHTTTHTHHTHTTTHTHTHHTHTHTTHTHHHHHHTTTHTHTHHTHTTTHTHHTHTHTTTHTHHHTTHTTTHTHTHHHHTHTTHHTTTTTHTHHHTHTHTTTTTHHHTHHTHHTHHHTTTTHTHTHHHTHHTTTTTHTHHHTHTHTHTTTHTHHHTHTHTHTTHTHHTHTHTHTTTTHTHHHTHTH"
+
+flips4 = "HTHHHHHHHTHTTHHTTHHHTHTHTTTHHTHHHTHHTTHTTTTTTTTTHTHHTTTTTHTHTHTHHTTHTTHTTTTTHHHTHTTTHTHTHHHTHTTTTHTHTHHTTHTHTTHHTHTHHHHTHTTHHTTHTTHTTHTHHHHHHTTTTTTHHHTTHTHHHHTTTHTTHHHTTHTHHTTTHHTHHTTTHTHHTHHHTHHTTHHH"
+
+flips5 = "HHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTTHHHHHHHHHHTTTTTTTTTT"
+
+flips6 = "TTHTTTHTTTTTTTHTHTHTHTTHTTHTHHTHHTTTHHTHTTTHTHHTHHHTHTTHHTHHTTHTHTTTTHTHTTTHHTTTTTTTTHTHHTTHTTTTTTHTHTHTHTTTHTTHHTTHTTTHHTTTHTTHTTTTHTTTTHHTTTHTHTHHHTTTTTTHTHHTTTTTTTTTTTTHHHTTTHHHTTTHTTTHTHTTHTTTTTHT"
+
+# you can use the function below to split the above sequences in vectors of flips
+# split = function(str) strsplit(str, split="")[[1]]
+# split(flips1)
+```
+
+> Test Statistic 1: We count the number of runs, whereby a run is a sequence of consecutive identical outcomes (eg HHH or TTT).
+
+```{r}
+
+split = function(str) strsplit(str, split="")[[1]]
+
+count_runs <- function(flips) {
+  runs <- rle(flips)
+  return(length(runs$lengths))
+}
+
+simulate_flips <- function(n) {
+  flips <- sample(c("H", "T"), size = n, replace = TRUE)
+  return(flips)
+}
+
+num_runs_simulation <- function(n, num_simulations) {
+  runs_count <- replicate(num_simulations, {
+    simulated_flips <- simulate_flips(n)
+    count_runs(simulated_flips)
+  })
+  return(runs_count)
+}
+
+NMC <- 1e5
+num_flips <- nchar(flips1)
+runs_distribution <- num_runs_simulation(num_flips, NMC)
+
+calculate_p_value <- function(observed_runs, runs_distribution) {
+  less_than_observed <- mean(runs_distribution <= observed_runs)
+  greater_than_observed <- mean(runs_distribution >= observed_runs)
+  p_value <- 2 * min(less_than_observed, greater_than_observed)
+  p_value <- min(p_value, 1) 
+  return(p_value)
+}
+
+sequences <- list(flips1, flips2, flips3, flips4, flips5, flips6)
+observed_runs <- numeric(length(sequences))
+p_values <- numeric(length(sequences))
+
+for (i in seq_along(sequences)) {
+  observed_runs[i] <- count_runs(split(sequences[[i]]))
+  p_values[i] <- calculate_p_value(observed_runs[i], runs_distribution)
+}
+
+# Generate histogram for visualization
+hist(runs_distribution, 
+     main = "Distribution of Number of Runs in Randomly Generated Sequences", 
+     xlab = "Number of Runs", 
+     ylab = "Frequency", 
+     col = "lightblue", 
+     border = "blue", 
+     breaks = 50) 
+
+max_freq <- max(hist(runs_distribution, plot = FALSE)$counts)
+
+for (obs_run in observed_runs) {
+  lines(x = c(obs_run, obs_run), y = c(0, max_freq * 0.9), col = "red", lwd = 1)
+}
+
+legend("topleft", legend = paste("Observed Flips:", observed_runs), col = "red", lty = 1, cex = 0.8)
+
+  
+p_values
+
+```
+
+- Sequences 2, and 3 (0.00002, 0.00070 respectively): These sequences have p-values below 0.05, indicating that the observed runs in these sequences are highly unlikely to have occurred by chance if the coin were fair. This suggests that these sequences were not generated by independent flips of a fair coin, or there are patterns in these sequences that deviate significantly from what is expected under the assumption of randomness.
+
+- Sequences 1, and 5 (0.00000): These sequences have p-values are the minimum, indicating that they exhibit non-random behavior and are unlikely to have resulted from independent flips of a fair coin.
+
+
+- Sequence 4 (0.56952): This sequence has a p-value much higher than 0.05, indicating that the number of runs observed in this sequence is consistent with what might be expected from a sequence of independent flips of a fair coin. There's no evidence to suggest that this sequence deviates from randomness based on the runs test.
+
+- Sequence 6 (0.99470): This sequence has a p-value very close to 1, also indicating a high consistency with the expected outcome of independent flips of a fair coin. The sequence is very likely to have been generated under the null hypothesis of randomness.
+
+
+
+> Test Statistic 2: We count the proportion of heads from the expected proportion under the null hypothesis of a fair coin (which is 0.5).
+
+```{r}
+
+split = function(str) strsplit(str, split="")[[1]]
+
+calculate_proportion_heads <- function(flips) {
+  num_heads <- sum(flips == "H")
+  proportion_heads <- num_heads / length(flips)
+  return(proportion_heads)
+}
+
+simulate_flips <- function(n) {
+  flips <- sample(c("H", "T"), size = n, replace = TRUE)
+  return(flips)
+}
+
+simulate_proportion_heads <- function(n, num_simulations) {
+  proportions <- replicate(num_simulations, {
+    simulated_flips <- simulate_flips(n)
+    calculate_proportion_heads(simulated_flips)
+  })
+  return(proportions)
+}
+
+NMC <- 1e5
+num_flips <- nchar(flips1)
+proportion_heads_distribution <- simulate_proportion_heads(num_flips, NMC)
+
+calculate_p_value <- function(observed_runs, runs_distribution) {
+  less_than_observed <- mean(runs_distribution <= observed_runs)
+  greater_than_observed <- mean(runs_distribution >= observed_runs)
+  p_value <- 2 * min(less_than_observed, greater_than_observed)
+  p_value <- min(p_value, 1) 
+  return(p_value)
+}
+
+sequences <- list(flips1, flips2, flips3, flips4, flips5, flips6)
+observed_runs <- numeric(length(sequences))
+p_values <- numeric(length(sequences))
+
+for (i in seq_along(sequences)) {
+  observed_runs[i] <- calculate_proportion_heads(split(sequences[[i]]))
+  p_values[i] <- calculate_p_value(observed_runs[i], proportion_heads_distribution)
+}
+
+# Generate histogram for visualization
+hist(proportion_heads_distribution, 
+     main = "Distribution of Proportion of Heads in Randomly Generated Sequences", 
+     xlab = "Proportion of Heads", 
+     ylab = "Frequency", 
+     col = "lightblue", 
+     border = "blue", 
+     breaks = 50) 
+
+max_freq <- max(hist(proportion_heads_distribution, plot = FALSE)$counts)
+
+for (obs_run in observed_runs) {
+  lines(x = c(obs_run, obs_run), y = c(0, max_freq * 0.9), col = "red", lwd = 1)
+}
+
+legend("topright", legend = paste("Proportion Heads:", observed_runs), col = "red", lty = 1, cex = 0.6)
+
+  
+p_values
+
+```
+
+- Sequences 2, and 4 (0.83342, 0.94118, respectively): These sequences have p-values well above the 0.05 threshold, indicating that the observed proportions of heads do not significantly deviate from what would be expected with a fair coin. Therefore, based on this test, there is no evidence to suggest that these sequences are not random.
+
+- Sequences 1, 3, and 5 (1.00000): This p-value is at the maximum, indicating that the observed data for these sequences perfectly matches the expected distribution under the null hypothesis, or it's within the range of extreme outcomes that are most consistent with randomness. This is very unlikely and therefore has a high possibility to not be random.
+
+- Sequence 6 (0.00008): This sequence has a p-value below the 0.05 threshold, indicating that the observed data significantly deviates from what would be expected under the null hypothesis of randomness. This suggests that the sequence is unlikely to have been generated by independent flips of a fair coin, indicating some non-randomness or bias in the sequence.
+
+
+
+> Test Statistic 3: We count the alternation rate between heads and tails. A truly random sequence from a fair coin would have a balance between persistence (repeated heads or tails) and alternation.
+
+```{r}
+
+split = function(str) strsplit(str, split="")[[1]]
+
+calculate_alternation_rate <- function(flips) {
+  changes <- sum(diff(flips == "H") != 0)
+  total_changes_possible <- length(flips) - 1
+  alternation_rate <- changes / total_changes_possible
+  return(alternation_rate)
+}
+
+simulate_flips <- function(n) {
+  flips <- sample(c("H", "T"), size = n, replace = TRUE)
+  return(flips)
+}
+
+simulate_alternation_rates <- function(n, num_simulations) {
+  rates <- replicate(num_simulations, {
+    simulated_flips <- simulate_flips(n)
+    calculate_alternation_rate(simulated_flips)
+  })
+  return(rates)
+}
+
+NMC <- 1e5
+num_flips <- nchar(flips1)
+alternation_rate_distribution <- simulate_alternation_rates(num_flips, NMC)
+
+calculate_p_value <- function(observed_runs, runs_distribution) {
+  less_than_observed <- mean(runs_distribution <= observed_runs)
+  greater_than_observed <- mean(runs_distribution >= observed_runs)
+  p_value <- 2 * min(less_than_observed, greater_than_observed)
+  p_value <- min(p_value, 1) 
+  return(p_value)
+}
+
+sequences <- list(flips1, flips2, flips3, flips4, flips5, flips6)
+observed_runs <- numeric(length(sequences))
+p_values <- numeric(length(sequences))
+
+for (i in seq_along(sequences)) {
+  observed_runs[i] <- calculate_alternation_rate(split(sequences[[i]]))
+  p_values[i] <- calculate_p_value(observed_runs[i], alternation_rate_distribution)
+}
+
+# Generate histogram for visualization
+hist(alternation_rate_distribution, 
+     main = "Distribution of Alternation Rate in Randomly Generated Sequences", 
+     xlab = "Alternation Rate", 
+     ylab = "Frequency", 
+     col = "lightblue", 
+     border = "blue", 
+     breaks = 50) 
+
+max_freq <- max(hist(proportion_heads_distribution, plot = FALSE)$counts)
+
+for (obs_run in observed_runs) {
+  lines(x = c(obs_run, obs_run), y = c(0, max_freq * 0.9), col = "red", lwd = 1)
+}
+
+legend("topright", legend = paste("Alternation Rate:", observed_runs), col = "red", lty = 1, cex = 0.6)
+
+  
+p_values
+
+```
+
+- Sequences 1, 2, and 5 (0.00000): These sequences have p-values are the minimum, indicating that they exhibit non-random behavior and are unlikely to have resulted from independent flips of a fair coin.
+
+- Sequence 3 (0.00056): This p-value, while low, is above the typical threshold of 0.05 used to denote statistical significance. However, it's very close to the threshold, indicating a borderline case. This might suggest some patterns or characteristics that deviate from randomness, but with less certainty compared to Sequences 1, 2, and 5.
+
+- Sequence 4 (0.57014): This sequence has a p-value well above 0.05, suggesting that the alternation rate (or the characteristic measured by your test statistic) does not significantly deviate from what would be expected from a sequence of random, independent flips of a fair coin. This adds evidence to the randomness of Sequence 4.
+
+- Sequence 6 (1.00000): This p-value is at the maximum, indicating that the observed data for Sequence 6 perfectly matches the expected distribution under the null hypothesis, or it's within the range of extreme outcomes that are most consistent with randomness. This is very unlikely and therefore has a high possibility to not be random.
+
+
+> Overall Conclusion
+
+- **Sequence 4** consistently shows evidence of randomness across different test statistics, reinforcing the conclusion that it is likely the result of truly random, independent flips of a fair coin.
+
+- Sequence 6 shows a mix of results, with only the first test indicating randomness and others not. The perfect p-value in the second and third test is intriguing and might suggest non-random behavior and are unlikely to have resulted from independent flips of a fair coin.
+
+- Sequences 1 and 5 consistently show evidence of non-randomness in the tests conducted, suggesting they are not the result of random, independent flips of a fair coin.
+
+- Sequences 2 and 3 presents a borderline cases. However, the second test shows sequence 3 having a maximum p value and the third test shoes sequence 2 having the minimum p value, both of which are highly unlikely and thus could reasonably be axed out.
+
+
+
+## Problem \#2: Finding the Trick Coin <small>(6 pts; 2pts each)</small>
+
+I have two coins in my pocket - a trick coin with two heads and a fair coin with one head and one tail(s?). We'll play a game. I will grab one coin at random, and flip it $N$ times. After that you will have to decide if it is the fair coin or the trick coin. The null hypothesis is that it is the fair coin. 
+
+**Decision Rule 1**: If after $N$ flips there are no tails, then you decide it is the trick coin. If there is at least 1 tail then you know it is the fair coin. 
+
+a. Using "Decision Rule 1", what is the lowest number of flips $N$ would you need in order to have a significance level less than 5% for this test?
+
+- We want to find the smallest N where $(\frac{1}{2})^N < 0.05$.
+
+```{r}
+
+N <- log(0.05)/log(0.5)
+N
+
+```
+
+- So $N = 5$
+
+b. Using $N$ from part a, what is the power of the test?
+
+- Power is correctly rejecting the null hypothesis. So this means correctly identifying the trick coin.
+- With $N$ flips, since the trick coin always lands heads, the probability of deciding it's the trick coin (correctly rejecting the null hypothesis) is 100% regardless of $N$, because you will never observe a tail. This means that the decision rule (no tails observed) will always lead us to correctly reject the null hypothesis when the trick coin is used.
+
+c. Suppose $N=4$ is decided. How can you modify the decision process to have a significance level of exactly 5%? Does this change the power of the test?
+
+-  If no tails are observed, perform an additional random determination (such as drawing from a bag with 95 fair items and 5 marked as "trick") to decide if the coin is the trick coin. This additional step is only triggered if all flips are heads, adding a 5% chance of deciding it's the trick coin under this specific condition.
+- This adjusted decision process ensures that, even if all heads are observed with a fair coin, there's only a 5% chance of incorrectly deciding it's the trick coin, meeting the desired significance level.
+- The power remains high for detecting the trick coin since, in all cases where the trick coin is used, the initial condition (all heads) will always be met. The additional random determination does not reduce the power because it's only applied when the initial condition (suggestive of the trick coin) is met.
+
+
+d. Extra Credit (2 points): Suppose if you guess correct you win \$100 (and if you're wrong you get nothing), but each flip of the coin costs \$10. What strategy would you use to maximize your expected profit from this game?
+
+- The strategy involves balancing the cost of flips against the probability of correctly guessing the coin type to maximize expected profit. With each flip costing $10, the key is to minimize the number of flips while still being reasonably sure you can make the correct guess.
+
+- If N=5: You would flip the coin up to 5 times. If you see no tails, you guess the trick coin, but each flip reduces your profit by $10.
+- Maximizing Profit:
+  - Flip fewer times to increase profit margin but balance this with the risk of making an incorrect guess.
+  - Given the decision rule and payouts, flipping the coin fewer times (close to the calculated N for a desired significance level) might be optimal, provided you're willing to accept the calculated risk level.
+  
+- For N=4 and aiming for a strategy that maximizes expected profit:
+  - Start by flipping the coin. If a tail is observed within the first few flips, you can conclude it's the fair coin with minimal cost.
+  - If no tails are observed after a certain number of flips, consider stopping based on the cumulative cost and the remaining potential profit.
+
+
+
+## Problem \#3: Testing the maximum of a uniform distribution <small>(8 pts; 2 pts each)</small>
+
+We sample $X_1, X_x,\ldots,X_n \overset{\text{iid}}\sim\text{Uniform}(0,m)$ where $m$ is an unknown maximum. Sleazy Jim tells you that $m=1$ but you're not so sure. The 50 values sampled are in the following data file:
+
+```{r}
+X <- read.csv("uniform_sample.csv")$x
+
+X
+```
+
+a. Write out in formal notation the null and alternative hypotheses. 
+
+- Null Hypothesis: The null hypothesis states that the maximum m of the uniform distribution is exactly 1, as claimed by Sleazy Jim. $H_{0}: m = 1$
+- Alternative Hypothesis: The alternative hypothesis suggests that the maximum m of the uniform distribution is less than to 1, indicating skepticism towards Jim's claim. $H_{a}: m \lt 1$
+
+> After observing the values in X, we note that every value in X is less than 1. Therefore, we should have our alternative test to observe if the max is less than 1.
+
+b. Come up with a test statistic and measure your sampled data. Is this a one-sided test or two-sided test?
+
+- Given that we're dealing with a uniform distribution and questioning the maximum value m, a natural test statistic to use is the maximum value observed in your sample, max(X). This statistic is sensitive to changes in the maximum value of the distribution, making it suitable for the task at hand.
+
+- Given the nature of my alternative hypothesis ($m < 1$), the test I am proposing is a one-sided test. Specifically, it's a left-tailed test because I am interested in determining if the true maximum ($m$) of the uniform distribution is less than the proposed value of 1. 
+
+c. Simulate a distribution for the test statistic under the null hypothesis of size at least 1000. Display a histogram of your test statistic distribution.
+
+```{r}
+
+n <- 50  
+num_simulations <- 100000
+simulated_max_values <- replicate(num_simulations, max(runif(n, 0, 1)))
+
+hist(simulated_max_values, breaks=30, main="Simulated Distribution of Maximum Values Under H0", xlab="Maximum Value")
+
+observed_max <- max(X)
+abline(v = observed_max, col = "red")
+
+```
+
+d. Calculate the $p$-value for this data and make a conclusion.
+
+```{r}
+
+p_value_lower <- sum(simulated_max_values <= observed_max) / num_simulations  
+
+p_value_lower
+
+```
+
+- Since the p-value is 0.05696, which is slightly above the significance level of 0.05, we do not reject the null hypothesis. This means there is not enough evidence to conclude that the maximum $m$ of the uniform distribution is different from 1, based on the sampled data, and therefore have insufficient evidence to reject Sleazy Jim's claim.
+
+
+## Problem \#4: Rising Temperatures? <small>(10 pts; 2 pt each)</small>
+
+The `annual_avg_temp.csv` data file contains the US annual average temperature from 1875 through 2022.
+```{r}
+temp <- read.csv("annual_avg_temp.csv")
+temps <- temp$Annual.Average.Temperature.F
+plot(temp, type="l")
+
+```
+
+There seems to be a trend but it could be due to randomness. Your task is to perform a permutation test on the historical record of annual avg. temperatures to determine if there is statistical evidence of a real trend.
+
+a. State the null and alternative hypotheses
+
+- Null Hypothesis ($H_0$): There is no real trend in the annual average temperatures. Any observed trend in the data is due to randomness.
+- Alternative Hypothesis ($H_a$): There is a real upward trend (as per observed in the graph) in the annual average temperatures, indicating that the observed trend is not due to randomness.
+
+b. Determine a test statistic that identify non-randomness in the temperatures
+
+- A test statistic could be the sum of the differences between consecutive years' temperatures. A positive sum would indicate a general upward trend, while a negative sum would indicate a downward trend. 
+
+c. Decide whether the test will be a one or two-tailed test
+
+- Given that the alternative hypothesis is looking for a upward trend, this suggests a two-tailed test because we are interested in deviations from the null hypothesis upwards, therefore should use a one-tailed test.
+
+d. Simulate a distribution of test statistics under the null hypothesis
+
+```{r}
+
+calculate_temp_differences <- function(temps) {
+  temp_diffs <- diff(temps)
+  
+  return(sum(temp_diffs))
+}
+
+NMC <- 1e5
+
+temps_distribution <- numeric(NMC)
+for (i in 1:NMC) {
+  sampled_temps <- sample(temps)
+  temps_distribution[i] <- calculate_temp_differences(sampled_temps)
+}
+
+hist(temps_distribution, breaks = 50, col = "blue", border = "white",
+     main = "Histogram of Simulated Temperature Differences",
+     xlab = "Sum of Temperature Differences", ylab = "Frequency")
+
+observed_sum <- calculate_temp_differences(temps)
+abline(v = observed_sum, col = "red")
+
+```
+
+e. Calculate the test statistic on the observed data, calculate the $p$-value and state your conclusions.
+
+```{r}
+
+p_value_upper <- mean(temps_distribution >= observed_sum)  
+
+p_value_upper
+
+```
+
+- Using the sum of the differences results in a p-value of 0.0793 which is greater than 0.05 thus does not provide evidence to reject the null hypothesis. However, we know from scientific and news reports of global warming is a legitimate concern. Let me try another test statistic:
+
+
+```{r}
+
+years <- temp$Year
+
+calculate_slope <- function(temps, years) {
+  lm_model <- lm(temps ~ years)
+  return(coef(lm_model)[2]) 
+}
+
+NMC <- 1e5
+
+slope_distribution <- numeric(NMC)
+for (i in 1:NMC) {
+  sampled_temps <- sample(temps)
+  slope_distribution[i] <- calculate_slope(sampled_temps, years)
+}
+
+hist(slope_distribution, breaks = 50, col = "blue", border = "white",
+     main = "Histogram of Simulated Slopes",
+     xlab = "Slope", ylab = "Frequency")
+
+observed_slope <- calculate_slope(temps, years)
+abline(v = observed_slope, col = "red") 
+
+p_value <- mean(abs(slope_distribution) >= abs(observed_slope))
+
+p_value
+
+```
+
+- This time around, we get a p-value of 0. A p-value of 0 in this context suggests that none of the permuted datasets produced a slope as extreme as the observed slope from the actual data. This result indicates very strong evidence against the null hypothesis, suggesting that the observed trend in temperatures is highly unlikely to be due to random chance.
+
+
+*Hint: basing the test statistic on the differences between consecutive years may be a good idea.*
+

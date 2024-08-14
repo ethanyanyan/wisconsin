@@ -1,0 +1,490 @@
+---
+title: "Homework 8"
+author: "Ethan Yan"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+## Problem 1: Permutation testing for correlatedness <small>8pts</small>
+
+We mentioned in lecture that independence and uncorrelatedness are usually things that we have to assume of our data, but that there are, in some settings, ways to detect the presence or absence of dependence.
+This problem will give an example of that, using our old friend the permutation test.
+
+Suppose that we observe pairs $(X_i, Y_i)$ where $X_i, Y_i \in \mathbb{R}$ for each $i=1,2,\dots,n$, with all $n$ pairs being independent of one another.
+That is, $(X_i,Y_i)$ is independent of $(X_j,Y_j)$ for $i \neq j$.
+
+Most typically, we think of these as predictor-response pairs.
+For example, the $X_i$ might represent years of education and $Y_i$ might represent income at age 30, and we want to predict $Y$ from a given value of $X$.
+These kinds of problems are probably familiar to you from your discussion of regression in STAT240, and that's a problem we'll return to in a couple of weeks.
+For now, though, let's forget about trying to estimate a regression coefficient or predict anything and instead just try to assess whether or not the $X$s and $Y$s are correlated at all.
+
+If $X_i$ and $Y_i$ are completely uncorrelated over all $i=1,2,\dots,n$, then, much like in permutation testing, it shouldn't matter what order the $Y$s appear with respect to the $X$s.
+That is, we should be able to shuffle the responses (i.e., the $Y_i$ terms) and not much should change in terms of how the data "looks".
+In particular, the correlation between the $X$s and $Y$s should not change much on average.
+
+
+### Part a: reading data, plotting and the eyeball test <small>3pts</small>
+
+The following code reads the horsepower (`hp`) and miles per gallon (`mpg`) columns from the famous `mtcars` data set (see `?mtcars` for background or a refresher).
+
+```{r}
+hp <- mtcars$hp
+mpg <- mtcars$mpg
+```
+
+Create a scatter plot of the data and state whether or not you think the variables `hp` and `mpg` are correlated, based on the plot (and explain what in the plot makes you think this).
+There is no need to calculate any statistics here-- just look at the data and describe what you see and what it suggests to you.
+
+```{r}
+
+#TODO: plotting code goes here.
+plot(hp, mpg)
+
+```
+
+***
+
+- From the plot of hp on the x-axis and mpg on the y-axis, I observe a negative relationship between the two variables. This means that as the horsepower of a car increases, its fuel efficiency (measured in miles per gallon) tends to decrease. This negative trend suggests that the variables are correlated, specifically inversely correlated.
+
+***
+
+
+### Part b: testing for correlation <small>5pts</small>
+
+Use a permutation test to assess whether or not the vectors `hp` and `mpg` are correlated.
+Pick a reasonable level $\alpha$ for your test and accept or reject the null hypothesis (letting $H$ be the RV representing horsepower and $M$ be the RV representing miles per gallon)
+
+$$
+H_0 : \operatorname{ Corr }( H, M ) = 0
+$$
+
+accordingly.
+Be sure to clearly explain your reasoning and give a basic explanation of the procedure you are following.
+Imagine that you are writing for a fellow STAT340 student, rather than for your professor or TA.
+
+__Hint:__ remember, the basic permutation recipe is to shuffle the data and then compute the test statistic on the shuffled data.
+In this case, the "right" test statistic is clearly... (you'll have to decide, but there are one or two pretty obvious choices), and shuffling the data just corresponds to permuting the entries of either `hp` or `mpg` (no need to permute both, because shuffling one vector effectively shuffles all pairings).
+
+```{r}
+
+#TODO: code goes here.
+observed_corr <- cor(hp, mpg)
+observed_corr
+
+permuted_corrs <- numeric(1e5)
+for (i in 1:1e5) {
+  shuffled_mpg <- sample(mpg) 
+  permuted_corrs[i] <- cor(hp, shuffled_mpg)
+}
+
+x_min <- min(c(permuted_corrs, observed_corr))
+x_max <- max(c(permuted_corrs, observed_corr))
+hist(permuted_corrs, main = "Distribution of Permuted Correlations", xlab = "Correlation Coefficient", 
+     xlim = c(x_min, x_max), col = "blue", border = "white")
+abline(v = observed_corr, col = "red", lwd = 2)
+
+p_value <- mean(abs(permuted_corrs) >= abs(observed_corr))
+p_value
+
+```
+
+***
+
+- In the permutation test, we initially computed the observed correlation coefficient between hp and mpg, which served as our test statistic. We then permuted mpg 1e5 times, recalculating the correlation coefficient with the other, unshuffled variable (hp) for each permutation. This process generated an empirical distribution of the correlation coefficients under the null hypothesis, which posits that there is no correlation between horsepower and miles per gallon.
+- Observing a p-value of 0 in our permutation test compels us to reject the null hypothesis at the conventional significance level of 0.05. This finding implies that there is a statistically significant correlation between horsepower and miles per gallon in the mtcars dataset, strongly suggesting that the two variables are not independent and that their relationship is unlikely to be due to random chance.
+
+***
+
+
+## 2) Catamaran <small>(10pts)</small>
+
+Startup pet supply company Catamaran is trying to better understand the spending behavior of its customers.
+In particular, the company wants to find simple ways to predict how much customers will spend on Catamaran products from their purchases of just one such product: cat litter.
+
+A (sadly, fictional) data set is stored in the file `catamaran.csv`, available from [here](https://pages.stat.wisc.edu/~bwu62/catamaran.csv).
+Download this file and save it in the same directory as your working directory (you can check this directory with `getwd()`).
+The data frame encoded in this file stores two columns:
+
+1. The column titled `litter` is the amount of cat litter, in pounds, purchased by a customer in the past year (you'll see in the data that Catamaran sells litter in three-pound increments; no, I don't think that's a realistic increment in which to sell cat litter. Fictional data is fun!).
+2. The column titled `spending` is the amount of money, in dollars, that a customer has spent on Catamaran products (including cat litter) in the past year.
+
+The following block of code loads the data in this file into a data frame `catamaran`.
+
+```{r}
+catamaran = read.csv('https://pages.stat.wisc.edu/~bwu62/catamaran.csv')
+```
+
+### Part a) inspecting the data  <small>(2pts)</small>
+
+Create a scatterplot showing customer spending as a function of how much cat litter they bought.
+Do you see a linear trend?
+Based just on looking at the scatterplot, what do you estimate the slope to be (you will not be graded on the accuracy of this estimate-- just give a best guess for fun to see how close it is to the estimated model!).
+
+```{r}
+# TODO: plotting code goes here.
+plot(catamaran$litter, catamaran$spending, 
+     xlab = "Cat Litter Purchased (pounds)", 
+     ylab = "Total Spending on Catamaran Products ($)", 
+     main = "Customer Spending vs. Cat Litter Purchased",
+     col = "blue")
+
+```
+
+***
+
+- Upon examining the scatterplot of customer spending as a function of cat litter purchased, it becomes evident there is a discernible linear relationship between these two variables. This trend suggests a direct correlation: as customers buy more cat litter, their total expenditure on Catamaran products also rises.
+- My initial estimation of the slope, derived purely from visual inspection of the plot, is approximately 1.67. This figure is reached by observing a hypothetical increase in spending of $100 corresponding to an increase in cat litter purchases of 60 pounds.
+
+***
+
+### Part b) fitting a model  <small>(2pts)</small>
+
+Fit a linear model to the Catamaran data, regressing spending against the amount of litter purchased (and an intercept term).
+
+Store the estimated intercept in a variable called `cat_intercept_hat`, and store the estimated coefficient of `litter` in a variable called `cat_slope_hat`.
+Don't forget to use the `unname()` function to strip the labels off of these, ensuring that these two variables just store numbers.
+
+```{r}
+
+#TODO: code goes here.
+cat_model = lm(spending ~ litter, data=catamaran)
+
+cat_intercept_hat <- unname(coef(cat_model)[1])
+cat_intercept_hat
+
+cat_slope_hat <- unname(coef(cat_model)[2])
+cat_slope_hat
+
+```
+
+### Part c) interpreting the model  <small>(3pts)</small>
+
+Based on these estimates, the purchase of one additional pound of cat litter per year is associated with how many more dollars per year spent on Catamaran products?
+
+***
+
+- Based on the estimates, the purchase of one additional pound of cat litter per year is associated with an increase of approximately `r round(cat_slope_hat, 3)` dollars per year spent on Catamaran products.
+
+***
+
+As we mentioned above, Catamaran sells cat littler in three-pound units.
+Thus, a more natural question is: the purchase of one additional three-pound unit (i.e., three additional pounds) of cat littler is associated with an increase of how many more dollars per year spent on Catamaran products?
+
+***
+
+- The purchase of one additional three-pound unit of cat litter is associated with an increase of approximately `r round(cat_slope_hat * 3, 3)` dollars per year spent on Catamaran products.
+
+***
+
+Perhaps a more sane increment in which to sell cat litter would be twenty-pound bags.
+Based on your estimated coefficients, an additional twenty pounds of cat litter purchased per year is associated with an increase of how many more dollars per year spent on Catamaran products?
+
+***
+
+- An additional twenty pounds of cat litter purchased per year is associated with an increase of approximately `r round(cat_slope_hat * 20, 3)` dollars per year spent on Catamaran products.
+
+***
+
+### Part d) generating a confidence interval  <small>(3pts)</small>
+
+Of course, Catamaran's data is noisy, so there is uncertainty in our estimate of the coefficients in our model.
+
+Create a Q-Q plot to verify that the residuals of our model are approximately normal.
+Do you see anything unusual?
+You probably won't-- the observation errors in this fake data really are normal.
+Still, take a look just to be sure; it's a good habit to always at least briefly check the appropriateness of your model.
+
+```{r}
+
+#TODO: code goes here
+cat_residuals <- resid(cat_model)
+qqnorm(cat_residuals, main = "Q-Q Plot of Residuals")
+qqline(cat_residuals, col = "red")
+
+```
+
+Once you've verified that the residuals look reasonable, and hence our normality assumptions are defensible, construct a 95% confidence interval for the coefficient of `litter` in our model.
+
+
+```{r}
+
+# TODO: code goes here
+cat_conf_intervals <- confint(cat_model, level = 0.95)
+cat_conf_intervals
+
+```
+
+Based on this confidence interval, should we accept or reject the null hypothesis that $\beta_1=0$ at level $\alpha=0.05$?
+
+***
+
+- Given that our 95% confidence interval for the coefficient of `litter` is from `r round(cat_conf_intervals["litter", 1], 3)` to `r round(cat_conf_intervals["litter", 2], 3)`, and that this interval does not include the value 0 for $\beta_1$, we can conclude there is a statistically significant relationship between the amount of litter purchased and the total spending on Catamaran products. Therefore, we reject the null hypothesis at the $\alpha=0.05$ level. This indicates that the purchase of cat litter is indeed associated with an increase in customer spending on Catamaran products.
+
+
+***
+
+Finally, verify your answer by looking at the `summary` output of your model and check that the coefficient is or is not statistically significantly different from zero.
+
+```{r}
+
+# TODO: code goes here.
+summary(cat_model)
+
+```
+
+- This conclusion is further supported by examining the summary output of our model, where the p-value associated with the litter coefficient is significantly less than 0.05, confirming its statistical significance and reinforcing our decision to reject $H_0$.
+
+<br/><br/>
+
+## 3) Understanding the effect of noise  <small>(12pts, 2pts each)</small>
+
+This problem, loosely based on Problem 13 in Chapter 3 of [ISLR](https://www.statlearning.com/), will help to give you an intuition to the role of sample size (i.e., number of observations $n$) and  noise level (as captured by the variance $\sigma^2$ of the noise terms $\epsilon_i$).
+
+### Part a) generating linear data
+
+Write a function `generate_linear_data` that takes two arguments: `n` and `sigma2`, in that order, and does the following:
+
+1. Use the `rnorm()` function to create a vector `x`, containing `n` independent observations drawn from a normal distribution with mean $0$ and variance $1$. This will represent our vector of predictors.
+
+2. Use the `rnorm()` function to create a vector, `eps`, containing `n` independent observations drawn from a normal distribution with mean $0$ and variance `sigma2`. These will correspond to the errors in our observed responses.
+
+3. Using `x` and `eps`, construct a vector `y` according to the model
+$$
+Y = -1 + 0.5X + \epsilon,
+$$
+
+where $X$ corresponds to entries in our vector `x` and $\epsilon$ corresponds to entries in our vector `eps`.
+
+4. Create a data frame with two columns, `predictors` and `responses` whose entries correspond to the vectors `x` and `y`, respectively. Return this data frame.
+
+You do not need to perform any error checking in this function.
+You may assume that `n` is a positive integer and `eps` is a positive numeric.
+
+Before writing code, let's __check your understanding:__ What is the length of the vector `y`? What are the values of the intercept $\beta_0$ and slope $\beta_1$ in this linear model?
+
+***
+- The length of the vector y is n, the same as the length of the vector x and eps, since y is constructed as a linear combination of x and the error term eps for each of the n observations. In this linear model, the intercept ($\beta_0$) is −1, and the slope ($\beta_1$) is 0.5. These values represent the true relationship between the predictor X and the response Y before the addition of noise $\epsilon$.
+***
+
+```{r}
+
+generate_linear_data = function( n, sigma2 ) {
+  x <- rnorm(n, 0, 1)
+  eps <- rnorm(n, 0, sigma2)
+  y = -1 + 0.5 * x + eps
+  return (data.frame(predictors = x, responses = y))
+}
+```
+
+### Part b) Plotting data
+
+Use your function from Part (a) to generate 100 samples from the model
+$$
+Y = -1 + 0.5X + \epsilon,
+$$
+
+with `sigma2` set to $0.25$ and create a scatterplot of that data, showing the responses $Y$ as a function of $X$.
+You may use either `ggplot2` or R's built-in plotting utilities.
+
+Examine the point cloud and discuss:
+Does the data look approximately linear?
+Does the slope look about right?
+What about the intercept?
+__Note:__ You __do not__ need to fit a model, yet! Just inspect the data!
+
+```{r}
+
+data <- generate_linear_data(100, 0.25)
+
+plot(data$predictors, data$responses, 
+     main = "Scatterplot of Responses Y as a Function of X",
+     xlab = "Predictors (X)", ylab = "Responses (Y)",
+     col = "blue")
+
+abline(a = -1, b = 0.5, col = "red")
+
+```
+
+***
+
+- Yes, the distribution of data points indeed exhibits an approximately linear trend, consistent with the underlying linear model
+- Yes, the slope, represented visually by the rise over run of the data points, appears to align closely with the true slope value of 0.5 from our model. 
+- Visually, the y-intercept of the point cloud — where the line of best fit would theoretically cross the y-axis when X=0 — seems to approximate the model's specified intercept of −1. Although the scatter due to the noise term ϵ might lead to some variability around this value, the general positioning of the data points suggests a starting value in the vicinity of −1, which is expected based on the model.
+
+***
+
+### Part c) the effect of noise
+
+Now, generate 100 data points again, as in part (b), but increase the noise level (i.e., the variance of the observation errors $\epsilon$) to $1$.
+That is, set `sigma2` to `1`.
+Plot the data again, and compare to the previous plot.
+What do you observe?
+
+```{r}
+
+# TODO: code goes here
+data_with_more_noise <- generate_linear_data(100, 1)
+
+plot(data_with_more_noise$predictors, data_with_more_noise$responses, 
+     main = "Scatterplot with Increased Noise",
+     xlab = "Predictors (X)", ylab = "Responses (Y)",
+     pch = 19, col = "blue")
+
+abline(a = -1, b = 0.5, col = "red")
+
+```
+
+***
+
+- The points in the scatterplot are more dispersed around the true linear trend (−1+0.5X). This increased variability makes it more challenging to visually discern the underlying linear relationship.
+- Despite the higher variance in the errors, the overall trend should still be identifiable as linear, following the underlying model. However, the individual data points will exhibit greater deviation from the model-predicted values, emphasizing the impact of noise.
+- While the true slope (0.5) and intercept (−1) remain unchanged, their visual approximation through the point cloud becomes less clear due to the greater spread of data points. The increased noise makes it harder to visually estimate these parameters accurately.
+
+***
+
+Now, try decreasing the noise level (i.e., the variance of the $\epsilon$ terms), down to $\sigma^2 = 0.1$ and create one more plot, again with $n=100$ data points.
+What do you observe?
+
+```{r}
+
+# TODO: code goes here
+data_with_less_noise <- generate_linear_data(100, 0.1)
+
+plot(data_with_less_noise$predictors, data_with_less_noise$responses, 
+     main = "Scatterplot with Decreased Noise",
+     xlab = "Predictors (X)", ylab = "Responses (Y)",
+     pch = 19, col = "blue")
+
+abline(a = -1, b = 0.5, col = "red")
+
+```
+
+***
+
+- The data points are more tightly clustered around the linear trend line (−1+0.5X) compared to plots with higher noise levels. This reduced variability highlights the underlying linear relationship more clearly, making the trend more visually apparent.
+- The decrease in noise results in a plot where the slope and intercept of the linear relationship can be visually estimated with greater confidence. The individual data points deviate less from the predicted values, illustrating the impact of noise reduction on the precision of observational data.
+- The linear trend between predictors X and responses Y becomes unmistakable with lower noise, affirming the model's parameters ($\beta_0 = -1$, $\beta_1 - 0.5$) with greater visual evidence.
+
+***
+
+### Part d) estimating from synthetic data
+
+Now, let's investigate how the amount of noise (i.e., the error term variance $\sigma^2$) influences our estimation of the slope $\beta_1$.
+Hopefully in your plots above you noticed that when the variance $\sigma^2$ is larger, the linear trend in the data is "harder to see".
+Perhaps unsurprisingly, but still interestingly, this translates directly into difficulty in estimating the coefficients.
+When there is more noise in our observations, our estimation of the coefficients suffers.
+
+Let's investigate this with a simulation. This part of the problem will have you write code to run a single experiment wherein we generate data and try to estimate the slope $\beta_1$.
+In Part (e) below, we'll use this single-trial code to run a Monte Carlo simulation that estimates the variance of our estimate $\hat{\beta}_1$.
+We'll be able to see how the variance of our estimate (i.e., how close we are on average to the true $\beta_1$) changes as the noise $\sigma^2$ changes.
+
+Write a function `generate_and_estimate` that takes two arguments: a sample size `n` and a variance term `sigma2`, and does the following:
+
+1. Use `generate_linear_data` to generate a collection of `n` observations from a linear model
+$$
+Y = -1 + 0.5X + \epsilon,
+$$
+where the noise term $\epsilon$ is normal with variance `sigma2`.
+
+2. Pass this data into `lm()` to fit a model predicting the column `responses` from the column `predictors` and an intercept term.
+
+3. Extract the estimate of the slope from the resulting fitted model object (hint: look at the `coefficients` attribute of the model object or use the function `coef()`). Call this `beta1hat`. __Hint:__ don't forget to use `unname()` to remove the "names" of the coefficients extracted from the model object.
+
+4. Return `beta1hat`.
+
+```{r}
+generate_and_estimate = function( n, sigma2 ) {
+  # TODO: code goes here
+  data <- generate_linear_data(n, sigma2)
+  fitted_model <- lm(responses ~ predictors, data = data)
+  beta1hat <- unname(coef(fitted_model)[2])
+
+  return(beta1hat)
+}
+```
+
+### Part e) estimating variance of an estimator
+
+Now, let's write code compute a Monte Carlo estimate of the variance of our estimator $\hat{\beta}_1$.
+Note that this variance is a good way to measure the (average) squared error of our estimator. When this variance is large, it means that our estimate of $\beta_1$ is more uncertain, as we expect to be farther from the true value of $\beta_1$ more often, on average.
+
+Write a function `estimate_beta1hat_variance` that takes three arguments: a number of observations `n`, a variance `sigma2` and a number of Monte Carlo replicates `M`, and does the following:
+
+1. Use `generate_and_estimate` to generate a collection of `n` observations from a linear model
+$$
+Y = -1 + 0.5X + \epsilon,
+$$
+where the noise term $\epsilon$ is normal with variance `sigma2`, and estimate $\beta_1$. Call the resulting estimate `beta1hat`.
+
+2. Perform step 1 a total of `M` times, recording the resulting `beta1hat` each time in a vector. That is, perform `M` Monte Carlo iterations of the experiment wherein we generate random data and estimate the slope $\beta_1 = 0.5$, keeping track of our estimate in each Monte Carlo replicate.
+
+3. Compute and return the variance of our `M` random `beta1hat` replicates. This is a Monte Carlo estimate of the variance of our estimate $\hat{\beta}_1$.
+You may use either the corrected or uncorrected sample variance in this calculation.
+
+```{r}
+estimate_beta1hat_variance = function( n, sigma2, M ) {
+  # TODO: code goes here
+  beta1hat_replicates <- numeric(M)
+  
+  for (i in 1:M) {
+    beta1hat_replicates[i] <- generate_and_estimate(n, sigma2)
+  }
+  
+  variance_beta1hat <- var(beta1hat_replicates)
+  
+  return(variance_beta1hat) 
+}
+```
+
+### Part f) effect of noise on estimation accuracy
+
+Use your function from Part (e) to create a plot of the variance (as estimated from 1000 Monte Carlo iterates) of the estimator $\hat{\beta}_1$, as a function of $\sigma^2$, when $n=100$.
+Use values for $\sigma^2$ ranging from $0.25$ to $4$, inclusive, in increments of $0.25$.
+You may use either `ggplot2` or the built-in R plotting functions.
+
+__Note:__ this simulation make take a few minutes to run, since for each value of $\sigma^2$, we must perform $M=1000$ simulations, and each simulation requires fitting linear regression, which is not free!
+
+```{r}
+
+# TODO: code goes here
+sigma2_values <- seq(0.25, 4, by = 0.25)
+
+variances <- numeric(length(sigma2_values))
+
+for (i in seq_along(sigma2_values)) {
+  variances[i] <- estimate_beta1hat_variance(n = 100, sigma2 = sigma2_values[i], M = 1000)
+}
+
+plot(sigma2_values, variances, type = 'b', pch = 19, col = "blue",
+     xlab = expression(sigma^2), ylab = "Variance of " ~ hat(beta)[1],
+     main = "Variance of " ~ hat(beta)[1] ~ " as a Function of Noise Level")
+
+```
+
+Based on your plot, how does it look like the variance of our estimator $\hat{\beta}_1$ behaves as a function of the observation error variance $\sigma^2$?
+
+If you look up the variance of $\hat{\beta}_1$ in a mathematical statistics textbook, you will find that
+$$
+\operatorname{Var} \hat{\beta}_1
+=
+\frac{ \sigma^2 }{ \sum_{i=1}^n (x_i - \bar{x})^2 }.
+$$
+
+Does this agree with your plot above?
+
+***
+
+- Yes, the observation from the plot agrees with the mathematical expression for the variance of $\hat{\beta}_1$. As $\sigma^2$ increases, the variability in the responses Y due to the noise term ϵ also increases, directly affecting the precision with which we can estimate the slope ${\beta}_1$. This results in a higher variance of the estimator $\hat{\beta}_1$, reflected in the linear increase observed in the plot as $\sigma^2$ increases.
+
+***
+
+
+<br/><br/>
+
+
