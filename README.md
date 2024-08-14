@@ -10,6 +10,7 @@
 - **CS540 Intro to Artificial Intelligence**: Taken with Josiah Hanna
 
 ## Fall 2023
+- **STAT240 Statistical Modelling I**: Taken with Bi Cheng Wu
 - **CS577 Intro to Algorithms**: Taken with Marc Renault
 - **CS544 Intro to Big Data Systems**: Taken with Tyler Caraza-Harter
 
